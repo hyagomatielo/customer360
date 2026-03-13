@@ -1,0 +1,17 @@
+{
+  "name": "customer360",
+  "version": "1.0.0",
+  "description": "A single-page app that authenticates via MSAL and displays a Customer 360 view for any account in your Dynamics 365 Sales environment, showing **open cases**, **open opportunities**, and **contacts** — all from live Dataverse data.",
+  "main": "api.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@azure/msal-node": "^3.8.9",
+    "node-fetch": "^2.7.0"
+  }
+}

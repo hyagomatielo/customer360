@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Customer 360 &ndash; Dynamics 365</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Login screen -->
+        <div id="login-screen" class="login-screen">
+            <div class="login-card">
+                <h1>Customer 360</h1>
+                <p>Sign in with your Dynamics 365 credentials to view account insights.</p>
+                <button id="btn-login" class="btn btn-primary" onclick="signIn()">
+                    Sign in with Microsoft
+                </button>
+            </div>
+        </div>
+
+        <!-- Main content (hidden until authenticated) -->
+        <div id="main-content" class="hidden">
+            <header>
+                <h1>Customer 360</h1>
+                <div class="header-right">
+                    <span id="user-name"></span>
+                    <button class="btn btn-secondary" onclick="signOut()">Sign out</button>
+                </div>
+            </header>
+
+            <div class="search-bar">
+                <input
+                    type="text"
+                    id="account-search"
+                    placeholder="Search accounts by name..."
+                    oninput="onSearchInput()"
+                />
+                <div id="search-results" class="search-results hidden"></div>
+            </div>
+
+            <!-- Account 360 Card -->
+            <div id="account-card" class="hidden">
+                <div class="card account-header-card">
+                    <div class="account-title">
+                        <h2 id="account-name"></h2>
+                        <span id="account-number" class="badge"></span>
+                    </div>
+                    <div class="account-meta">
+                        <span id="account-phone"></span>
+                        <span id="account-email"></span>
+                        <span id="account-city"></span>
+                    </div>
+                </div>
+
+                <div class="kpi-row">
+                    <div class="kpi-card">
+                        <span class="kpi-value" id="kpi-cases">-</span>
+                        <span class="kpi-label">Open Cases</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-value" id="kpi-opportunities">-</span>
+                        <span class="kpi-label">Open Opportunities</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-value" id="kpi-contacts">-</span>
+                        <span class="kpi-label">Contacts</span>
+                    </div>
+                </div>
+
+                <!-- Open Cases -->
+                <div class="card">
+                    <h3>Open Cases</h3>
+                    <div id="cases-loading" class="loading">Loading...</div>
+                    <div id="cases-empty" class="empty-state hidden">No open cases found.</div>
+                    <table id="cases-table" class="data-table hidden">
+                        <thead>
+                            <tr>
+                                <th>Case #</th>
+                                <th>Title</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Created On</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cases-body"></tbody>
+                    </table>
+                </div>
+
+                <!-- Opportunities -->
+                <div class="card">
+                    <h3>Open Opportunities</h3>
+                    <div id="opps-loading" class="loading">Loading...</div>
+                    <div id="opps-empty" class="empty-state hidden">No open opportunities found.</div>
+                    <table id="opps-table" class="data-table hidden">
+                        <thead>
+                            <tr>
+                                <th>Topic</th>
+                                <th>Est. Revenue</th>
+                                <th>Est. Close Date</th>
+                                <th>Sales Stage</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="opps-body"></tbody>
+                    </table>
+                </div>
+
+                <!-- Contacts -->
+                <div class="card">
+                    <h3>Contacts</h3>
+                    <div id="contacts-loading" class="loading">Loading...</div>
+                    <div id="contacts-empty" class="empty-state hidden">No contacts found.</div>
+                    <table id="contacts-table" class="data-table hidden">
+                        <thead>
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Job Title</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contacts-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
