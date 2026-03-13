@@ -26,12 +26,7 @@ const PUBLISHER_PREFIX = "cr4e0"; // will be overridden by the default publisher
 
 // Files to upload as web resources
 const WEB_RESOURCE_FILES = [
-    { file: "index.html",  displayName: "Customer 360 - Main Page",    type: 1 }, // HTML
-    { file: "styles.css",   displayName: "Customer 360 - Styles",       type: 3 }, // CSS
-    { file: "config.js",    displayName: "Customer 360 - Config",       type: 3 }, // Script (JS)
-    { file: "auth.js",      displayName: "Customer 360 - Auth",         type: 3 }, // Script (JS)
-    { file: "api.js",       displayName: "Customer 360 - API",          type: 3 }, // Script (JS)
-    { file: "app.js",       displayName: "Customer 360 - App Logic",    type: 3 }, // Script (JS)
+    { file: "customer360.html", displayName: "Customer 360 - Dashboard", type: 1 }, // HTML (single-file embedded page)
 ];
 
 let accessToken = null;
