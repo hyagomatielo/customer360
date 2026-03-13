@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Customer 360</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* ─── Reset & Variables ────────────────────────────── */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #f5f5f5;
+            --surface: #ffffff;
+            --surface-alt: #fafbfc;
+            --primary: #0078d4;
+            --primary-light: #deecf9;
+            --primary-dark: #004578;
+            --accent-green: #107c10;
+            --accent-green-light: #dff6dd;
+            --accent-orange: #ca5010;
+            --accent-orange-light: #fff4ce;
+            --accent-red: #d13438;
+            --accent-red-light: #fde7e9;
+            --accent-purple: #8764b8;
+            --accent-purple-light: #ece3f6;
+            --text: #242424;
+            --text-secondary: #616161;
+            --text-tertiary: #9e9e9e;
+            --border: #e0e0e0;
+            --border-light: #f0f0f0;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+            --shadow-hover: 0 2px 8px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.08);
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        /* ─── Loading State ────────────────────────────────── */
+        #loading-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .hidden { display: none !important; }
+
+        /* ─── Layout ───────────────────────────────────────── */
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 24px;
+        }
+
+        /* ─── Account Header ───────────────────────────────── */
+        .account-header {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            border-radius: var(--radius);
+            padding: 28px 32px;
+            color: #fff;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            box-shadow: 0 4px 16px rgba(0, 120, 212, 0.25);
+        }
+        .account-header-left { flex: 1; }
+        .account-header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            letter-spacing: -0.3px;
+        }
+        .account-header .subtitle {
+            font-size: 13px;
+            opacity: 0.85;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .account-header .subtitle span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .account-description {
+            font-size: 13px;
+            opacity: 0.8;
+            line-height: 1.6;
+            max-width: 700px;
+        }
+        .account-header-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+            min-width: 180px;
+        }
+        .revenue-display {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+        .revenue-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(4px);
+        }
+        .status-active { background: rgba(16, 124, 16, 0.3); }
+        .status-inactive { background: rgba(209, 52, 56, 0.3); }
+
+        /* ─── KPI Strip ────────────────────────────────────── */
+        .kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .kpi-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            transition: box-shadow var(--transition), transform var(--transition);
+            border-left: 4px solid var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-1px);
+        }
+        .kpi-card:nth-child(1) { border-left-color: var(--accent-red); }
+        .kpi-card:nth-child(2) { border-left-color: var(--accent-orange); }
+        .kpi-card:nth-child(3) { border-left-color: var(--accent-green); }
+        .kpi-card:nth-child(4) { border-left-color: var(--accent-purple); }
+        .kpi-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 600;
+        }
+        .kpi-icon {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            font-size: 28px;
+            opacity: 0.12;
+        }
+
+        /* ─── Chart Row ────────────────────────────────────── */
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* ─── Card ─────────────────────────────────────────── */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: box-shadow var(--transition);
+        }
+        .card:hover { box-shadow: var(--shadow-hover); }
+        .card-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .card-header h2 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-header .count-badge {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .card-body { padding: 20px 24px; }
+        .card-body-flush { padding: 0; }
+
+        /* ─── Charts ───────────────────────────────────────── */
+        .chart-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 220px;
+        }
+        .chart-container svg { overflow: visible; }
+
+        /* ─── Table ────────────────────────────────────────── */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .data-table th {
+            text-align: left;
+            padding: 10px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-tertiary);
+            background: var(--surface-alt);
+            border-bottom: 1px solid var(--border-light);
+            position: sticky;
+            top: 0;
+        }
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: middle;
+        }
+        .data-table tbody tr {
+            transition: background var(--transition);
+        }
+        .data-table tbody tr:hover { background: var(--surface-alt); }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+
+        /* ─── Badges ───────────────────────────────────────── */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .badge-high { background: var(--accent-red-light); color: var(--accent-red); }
+        .badge-normal { background: var(--accent-orange-light); color: var(--accent-orange); }
+        .badge-low { background: var(--accent-green-light); color: var(--accent-green); }
+        .badge-open { background: var(--primary-light); color: var(--primary-dark); }
+        .badge-won { background: var(--accent-green-light); color: var(--accent-green); }
+        .badge-lost { background: var(--accent-red-light); color: var(--accent-red); }
+        .badge-inprogress { background: #e1dfff; color: #5b5fc7; }
+        .badge-onhold { background: #fff1d6; color: #8a6600; }
+
+        /* ─── Contact Card ─────────────────────────────────── */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+            padding: 16px 24px;
+        }
+        .contact-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            transition: all var(--transition);
+        }
+        .contact-card:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+        .contact-avatar {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+        .contact-info h4 { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+        .contact-info p { font-size: 12px; color: var(--text-secondary); }
+        .contact-info a { color: var(--primary); text-decoration: none; font-size: 12px; }
+        .contact-info a:hover { text-decoration: underline; }
+
+        /* ─── Opportunity pipeline ─────────────────────────── */
+        .pipeline-bar {
+            display: flex;
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            background: var(--border-light);
+            margin: 8px 0 12px;
+        }
+        .pipeline-segment {
+            height: 100%;
+            transition: width 0.6s ease;
+        }
+
+        /* ─── Empty & Error States ─────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-tertiary);
+        }
+        .empty-state .empty-icon { font-size: 40px; margin-bottom: 8px; }
+        .empty-state p { font-size: 13px; }
+
+        .error-banner {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+            padding: 16px 24px;
+            border-radius: var(--radius);
+            margin: 20px 24px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* ─── Responsive ───────────────────────────────────── */
+        @media (max-width: 900px) {
+            .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+            .chart-row { grid-template-columns: 1fr; }
+            .account-header { flex-direction: column; }
+            .account-header-right { align-items: flex-start; }
+        }
+        @media (max-width: 500px) {
+            .kpi-strip { grid-template-columns: 1fr; }
+            .dashboard { padding: 12px; }
+        }
+
+        /* ─── D3 Tooltip ───────────────────────────────────── */
+        .d3-tooltip {
+            position: absolute;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+
+        /* Scrollable table containers */
+        .table-scroll {
+            max-height: 320px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading -->
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <p style="color:var(--text-secondary); font-size:14px;">Loading Customer 360...</p>
+    </div>
+
+    <!-- Error -->
+    <div id="error-screen" class="hidden">
+        <div class="error-banner" id="error-message">Unable to load account data.</div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="dashboard hidden">
+
+        <!-- Account Header -->
+        <div class="account-header">
+            <div class="account-header-left">
+                <h1 id="acct-name"></h1>
+                <div class="subtitle">
+                    <span id="acct-phone"></span>
+                    <span id="acct-website"></span>
+                    <span id="acct-address"></span>
+                    <span id="acct-employees"></span>
+                </div>
+                <p class="account-description" id="acct-description"></p>
+            </div>
+            <div class="account-header-right">
+                <span class="revenue-label">Annual Revenue</span>
+                <span class="revenue-display" id="acct-revenue">-</span>
+                <span class="status-badge" id="acct-status"></span>
+            </div>
+        </div>
+
+        <!-- KPI Strip -->
+        <div class="kpi-strip">
+            <div class="kpi-card">
+                <div class="kpi-icon">&#x1F4CB;</div>
+                <div class="kpi-value" id="kpi-cases">-</div>
+                <div class="kpi-label">Open Cases</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon">&#x1F4B0;</div>
+                <div class="kpi-value" id="kpi-opps">-</div>
+                <div class="kpi-label">Opportunities</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon">&#x1F4B5;</div>
+                <div class="kpi-value" id="kpi-pipeline">-</div>
+                <div class="kpi-label">Pipeline Value</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon">&#x1F465;</div>
+                <div class="kpi-value" id="kpi-contacts">-</div>
+                <div class="kpi-label">Contacts</div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="chart-row">
+            <!-- Opportunity Pipeline Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>&#x1F4CA; Opportunity Pipeline</h2>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" id="chart-pipeline"></div>
+                </div>
+            </div>
+
+            <!-- Case Priority Donut -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>&#x1F3AF; Cases by Priority</h2>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" id="chart-cases"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Opportunities Table -->
+        <div class="card" style="margin-bottom:20px;">
+            <div class="card-header">
+                <h2>&#x1F680; Opportunities <span class="count-badge" id="opp-count">0</span></h2>
+            </div>
+            <div class="card-body-flush table-scroll" id="opps-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Opportunity</th>
+                            <th>Est. Revenue</th>
+                            <th>Close Date</th>
+                            <th>Stage</th>
+                            <th>Probability</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="opps-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Cases Table -->
+        <div class="card" style="margin-bottom:20px;">
+            <div class="card-header">
+                <h2>&#x1F4DD; Cases <span class="count-badge" id="case-count">0</span></h2>
+            </div>
+            <div class="card-body-flush table-scroll" id="cases-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Ticket #</th>
+                            <th>Title</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cases-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Contacts -->
+        <div class="card" style="margin-bottom:20px;">
+            <div class="card-header">
+                <h2>&#x1F464; Contacts <span class="count-badge" id="contact-count">0</span></h2>
+            </div>
+            <div class="card-body-flush" id="contacts-container">
+                <div class="contact-grid" id="contact-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- D3 Tooltip -->
+    <div class="d3-tooltip" id="tooltip" style="opacity:0;"></div>
+
+    <script>
+    (function () {
+        "use strict";
+
+        // ─── Environment Config ───────────────────────────────
+        const CRM_URL = (function () {
+            // When embedded as a web resource, use the parent Xrm context
+            try {
+                if (parent && parent.Xrm && parent.Xrm.Utility) {
+                    return parent.Xrm.Utility.getGlobalContext().getClientUrl();
+                }
+            } catch (e) {}
+            try {
+                if (typeof GetGlobalContext !== "undefined") {
+                    return GetGlobalContext().getClientUrl();
+                }
+            } catch (e) {}
+            // Fallback for testing
+            return "https://hyagom.crm.dynamics.com";
+        })();
+
+        const API = CRM_URL + "/api/data/v9.2";
+
+        // ─── Get Account ID from parent form ──────────────────
+        function getAccountId() {
+            // Method 1: URL parameter (web resource data parameter)
+            const params = new URLSearchParams(window.location.search);
+            const data = params.get("data");
+            if (data) return data.replace(/[{}]/g, "").toLowerCase();
+
+            // Method 2: Xrm.Page from parent
+            try {
+                if (parent && parent.Xrm && parent.Xrm.Page) {
+                    const id = parent.Xrm.Page.data.entity.getId();
+                    return id.replace(/[{}]/g, "").toLowerCase();
+                }
+            } catch (e) {}
+
+            // Method 3: Parent URL
+            try {
+                const parentUrl = parent.location.href;
+                const match = parentUrl.match(/id=([0-9a-f-]+)/i);
+                if (match) return match[1].toLowerCase();
+            } catch (e) {}
+
+            return null;
+        }
+
+        // ─── API Fetch ────────────────────────────────────────
+        async function crmFetch(relativeUrl) {
+            const res = await fetch(API + relativeUrl, {
+                headers: {
+                    "Accept": "application/json",
+                    "OData-MaxVersion": "4.0",
+                    "OData-Version": "4.0",
+                    "Prefer": 'odata.include-annotations="*"',
+                },
+                credentials: "include",
+            });
+            if (!res.ok) {
+                throw new Error("API " + res.status + ": " + (await res.text()));
+            }
+            return res.json();
+        }
+
+        // ─── Data Fetchers ────────────────────────────────────
+        async function fetchAccount(id) {
+            return crmFetch("/accounts(" + id + ")?$select=name,accountnumber,telephone1,websiteurl,address1_composite,address1_city,address1_stateorprovince,address1_country,revenue,numberofemployees,industrycode,description,statuscode,statecode,createdon,emailaddress1");
+        }
+
+        async function fetchCases(accountId) {
+            return crmFetch("/incidents?$select=ticketnumber,title,prioritycode,statuscode,statecode,createdon,severitycode,casetypecode&$filter=_customerid_value eq '" + accountId + "'&$orderby=createdon desc&$top=50");
+        }
+
+        async function fetchOpportunities(accountId) {
+            return crmFetch("/opportunities?$select=name,estimatedvalue,estimatedclosedate,salesstagecode,statuscode,statecode,closeprobability,stepname,actualvalue,budgetamount&$filter=_parentaccountid_value eq '" + accountId + "'&$orderby=estimatedclosedate desc&$top=50");
+        }
+
+        async function fetchContacts(accountId) {
+            return crmFetch("/contacts?$select=fullname,jobtitle,emailaddress1,telephone1,mobilephone,address1_city,department&$filter=_parentcustomerid_value eq '" + accountId + "'&$orderby=fullname&$top=50");
+        }
+
+        // ─── Formatters ───────────────────────────────────────
+        function fmtCurrency(v) {
+            if (v == null) return "-";
+            return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v);
+        }
+        function fmtCurrencyShort(v) {
+            if (v == null) return "-";
+            if (v >= 1e6) return "$" + (v / 1e6).toFixed(1) + "M";
+            if (v >= 1e3) return "$" + (v / 1e3).toFixed(0) + "K";
+            return fmtCurrency(v);
+        }
+        function fmtDate(d) {
+            if (!d) return "-";
+            return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        }
+        function esc(s) {
+            const d = document.createElement("div");
+            d.appendChild(document.createTextNode(s || ""));
+            return d.innerHTML;
+        }
+
+        // ─── Option Maps ──────────────────────────────────────
+        const priorityMap = { 1: "High", 2: "Normal", 3: "Low" };
+        const priorityClass = { 1: "badge-high", 2: "badge-normal", 3: "badge-low" };
+        const caseStatusMap = { 1: "In Progress", 2: "On Hold", 3: "Waiting for Details", 4: "Researching", 5: "Problem Solved", 6: "Cancelled", 1000: "Information Provided", 2000: "Merged" };
+        const caseStatusClass = { 1: "badge-inprogress", 2: "badge-onhold", 3: "badge-open", 4: "badge-open" };
+
+        function getFormattedAnnotation(obj, field) {
+            return obj[field + "@OData.Community.Display.V1.FormattedValue"] || null;
+        }
+
+        // ─── Render Account Header ────────────────────────────
+        function renderHeader(acct) {
+            document.getElementById("acct-name").textContent = acct.name || "Unknown Account";
+            document.getElementById("acct-phone").innerHTML = acct.telephone1 ? "&#x1F4DE; " + esc(acct.telephone1) : "";
+            document.getElementById("acct-website").innerHTML = acct.websiteurl ? '&#x1F310; <a href="' + esc(acct.websiteurl) + '" target="_blank" style="color:#fff;opacity:0.9;">' + esc(acct.websiteurl) + "</a>" : "";
+            document.getElementById("acct-address").innerHTML = acct.address1_composite ? "&#x1F4CD; " + esc(acct.address1_composite.replace(/\r\n/g, ", ")) : "";
+            document.getElementById("acct-employees").innerHTML = acct.numberofemployees ? "&#x1F465; " + acct.numberofemployees + " employees" : "";
+            document.getElementById("acct-description").textContent = acct.description || "";
+            document.getElementById("acct-revenue").textContent = fmtCurrencyShort(acct.revenue);
+
+            const statusEl = document.getElementById("acct-status");
+            const isActive = acct.statecode === 0;
+            statusEl.textContent = isActive ? "Active" : "Inactive";
+            statusEl.className = "status-badge " + (isActive ? "status-active" : "status-inactive");
+        }
+
+        // ─── Render KPIs ──────────────────────────────────────
+        function renderKPIs(cases, opps, contacts) {
+            const openCases = cases.filter(c => c.statecode === 0);
+            const openOpps = opps.filter(o => o.statecode === 0);
+            const pipelineValue = openOpps.reduce((s, o) => s + (o.estimatedvalue || 0), 0);
+
+            document.getElementById("kpi-cases").textContent = openCases.length;
+            document.getElementById("kpi-opps").textContent = opps.length;
+            document.getElementById("kpi-pipeline").textContent = fmtCurrencyShort(pipelineValue);
+            document.getElementById("kpi-contacts").textContent = contacts.length;
+        }
+
+        // ─── Render Opportunities Table ───────────────────────
+        function renderOppsTable(opps) {
+            document.getElementById("opp-count").textContent = opps.length;
+            const tbody = document.getElementById("opps-body");
+
+            if (opps.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">&#x1F4B0;</div><p>No opportunities found for this account.</p></div></td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = opps.map(o => {
+                const statusLabel = getFormattedAnnotation(o, "statuscode") || "Open";
+                const stateLabel = getFormattedAnnotation(o, "statecode") || "";
+                let statusBadge = "badge-open";
+                if (stateLabel === "Won") statusBadge = "badge-won";
+                else if (stateLabel === "Lost") statusBadge = "badge-lost";
+
+                return '<tr>' +
+                    '<td><strong>' + esc(o.name) + '</strong></td>' +
+                    '<td>' + fmtCurrency(o.estimatedvalue) + '</td>' +
+                    '<td>' + fmtDate(o.estimatedclosedate) + '</td>' +
+                    '<td>' + esc(o.stepname || "-") + '</td>' +
+                    '<td>' + (o.closeprobability != null ? o.closeprobability + "%" : "-") + '</td>' +
+                    '<td><span class="badge ' + statusBadge + '">' + esc(statusLabel) + '</span></td>' +
+                    '</tr>';
+            }).join("");
+        }
+
+        // ─── Render Cases Table ───────────────────────────────
+        function renderCasesTable(cases) {
+            document.getElementById("case-count").textContent = cases.length;
+            const tbody = document.getElementById("cases-body");
+
+            if (cases.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">&#x1F4CB;</div><p>No cases found for this account.</p></div></td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = cases.map(c => {
+                const pLabel = priorityMap[c.prioritycode] || "Normal";
+                const pClass = priorityClass[c.prioritycode] || "badge-normal";
+                const sLabel = getFormattedAnnotation(c, "statuscode") || caseStatusMap[c.statuscode] || String(c.statuscode);
+                const sClass = caseStatusClass[c.statuscode] || "badge-open";
+
+                return '<tr>' +
+                    '<td><code>' + esc(c.ticketnumber) + '</code></td>' +
+                    '<td>' + esc(c.title) + '</td>' +
+                    '<td><span class="badge ' + pClass + '">' + pLabel + '</span></td>' +
+                    '<td><span class="badge ' + sClass + '">' + esc(sLabel) + '</span></td>' +
+                    '<td>' + fmtDate(c.createdon) + '</td>' +
+                    '</tr>';
+            }).join("");
+        }
+
+        // ─── Render Contacts ──────────────────────────────────
+        function renderContacts(contacts) {
+            document.getElementById("contact-count").textContent = contacts.length;
+            const grid = document.getElementById("contact-grid");
+
+            if (contacts.length === 0) {
+                grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">&#x1F464;</div><p>No contacts found for this account.</p></div>';
+                return;
+            }
+
+            const colors = ["#0078d4", "#107c10", "#ca5010", "#8764b8", "#d13438", "#008272"];
+            grid.innerHTML = contacts.map((ct, i) => {
+                const initials = (ct.fullname || "?").split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase();
+                const color = colors[i % colors.length];
+                const emailLink = ct.emailaddress1 ? '<a href="mailto:' + esc(ct.emailaddress1) + '">' + esc(ct.emailaddress1) + '</a>' : '';
+                const subtitle = [ct.jobtitle, ct.department].filter(Boolean).join(" · ");
+
+                return '<div class="contact-card">' +
+                    '<div class="contact-avatar" style="background:' + color + ';">' + initials + '</div>' +
+                    '<div class="contact-info">' +
+                    '<h4>' + esc(ct.fullname) + '</h4>' +
+                    (subtitle ? '<p>' + esc(subtitle) + '</p>' : '') +
+                    (ct.telephone1 ? '<p>&#x1F4DE; ' + esc(ct.telephone1) + '</p>' : '') +
+                    emailLink +
+                    '</div></div>';
+            }).join("");
+        }
+
+        // ─── D3: Opportunity Pipeline (Horizontal Bar Chart) ──
+        function drawPipelineChart(opps) {
+            const container = document.getElementById("chart-pipeline");
+            container.innerHTML = "";
+
+            if (opps.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F4CA;</div><p>No opportunity data available.</p></div>';
+                return;
+            }
+
+            // Group by step/stage
+            const stages = d3.rollups(
+                opps,
+                v => ({ count: v.length, value: d3.sum(v, o => o.estimatedvalue || 0) }),
+                o => o.stepname || getFormattedAnnotation(o, "statecode") || "Unknown"
+            ).map(([stage, data]) => ({ stage, ...data }))
+            .sort((a, b) => b.value - a.value);
+
+            const margin = { top: 10, right: 80, bottom: 30, left: 100 };
+            const width = Math.min(container.clientWidth || 400, 460) - margin.left - margin.right;
+            const height = Math.max(stages.length * 45, 120) - margin.top - margin.bottom;
+
+            const svg = d3.select(container).append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            const x = d3.scaleLinear()
+                .domain([0, d3.max(stages, d => d.value)])
+                .range([0, width]);
+
+            const y = d3.scaleBand()
+                .domain(stages.map(d => d.stage))
+                .range([0, height])
+                .padding(0.35);
+
+            const colorScale = d3.scaleOrdinal()
+                .domain(stages.map(d => d.stage))
+                .range(["#0078d4", "#107c10", "#ca5010", "#8764b8", "#d13438", "#008272"]);
+
+            const tooltip = d3.select("#tooltip");
+
+            // Bars
+            svg.selectAll(".bar")
+                .data(stages)
+                .join("rect")
+                .attr("class", "bar")
+                .attr("y", d => y(d.stage))
+                .attr("height", y.bandwidth())
+                .attr("x", 0)
+                .attr("width", 0)
+                .attr("rx", 4)
+                .attr("fill", d => colorScale(d.stage))
+                .on("mouseover", function (event, d) {
+                    tooltip.style("opacity", 1)
+                        .html("<strong>" + d.stage + "</strong><br/>" + d.count + " opps · " + fmtCurrency(d.value));
+                    d3.select(this).attr("opacity", 0.8);
+                })
+                .on("mousemove", function (event) {
+                    tooltip.style("left", (event.pageX + 12) + "px").style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", function () {
+                    tooltip.style("opacity", 0);
+                    d3.select(this).attr("opacity", 1);
+                })
+                .transition()
+                .duration(800)
+                .ease(d3.easeCubicOut)
+                .attr("width", d => x(d.value));
+
+            // Value labels
+            svg.selectAll(".value-label")
+                .data(stages)
+                .join("text")
+                .attr("x", d => x(d.value) + 8)
+                .attr("y", d => y(d.stage) + y.bandwidth() / 2)
+                .attr("dy", "0.35em")
+                .attr("font-size", "12px")
+                .attr("font-weight", "600")
+                .attr("fill", "var(--text-secondary)")
+                .text(d => fmtCurrencyShort(d.value));
+
+            // Y axis
+            svg.append("g")
+                .call(d3.axisLeft(y).tickSize(0).tickPadding(8))
+                .select(".domain").remove();
+
+            svg.selectAll(".tick text")
+                .attr("font-size", "12px")
+                .attr("fill", "var(--text-secondary)");
+        }
+
+        // ─── D3: Cases by Priority (Donut Chart) ─────────────
+        function drawCasesDonut(cases) {
+            const container = document.getElementById("chart-cases");
+            container.innerHTML = "";
+
+            if (cases.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F3AF;</div><p>No case data available.</p></div>';
+                return;
+            }
+
+            const grouped = d3.rollups(cases, v => v.length, c => priorityMap[c.prioritycode] || "Other")
+                .map(([label, count]) => ({ label, count }));
+
+            const width = 220, height = 220;
+            const radius = Math.min(width, height) / 2;
+            const innerRadius = radius * 0.55;
+
+            const colorMap = { "High": "#d13438", "Normal": "#ca5010", "Low": "#107c10", "Other": "#8764b8" };
+
+            const svg = d3.select(container).append("svg")
+                .attr("width", width + 140)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", "translate(" + (width / 2) + "," + (height / 2) + ")");
+
+            const pie = d3.pie().value(d => d.count).sort(null).padAngle(0.03);
+            const arc = d3.arc().innerRadius(innerRadius).outerRadius(radius);
+            const arcHover = d3.arc().innerRadius(innerRadius).outerRadius(radius + 6);
+
+            const tooltip = d3.select("#tooltip");
+
+            const arcs = svg.selectAll(".arc")
+                .data(pie(grouped))
+                .join("g");
+
+            arcs.append("path")
+                .attr("d", arc)
+                .attr("fill", d => colorMap[d.data.label] || "#888")
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 2)
+                .on("mouseover", function (event, d) {
+                    d3.select(this).transition().duration(200).attr("d", arcHover);
+                    tooltip.style("opacity", 1)
+                        .html("<strong>" + d.data.label + "</strong><br/>" + d.data.count + " cases");
+                })
+                .on("mousemove", function (event) {
+                    tooltip.style("left", (event.pageX + 12) + "px").style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", function () {
+                    d3.select(this).transition().duration(200).attr("d", arc);
+                    tooltip.style("opacity", 0);
+                })
+                .transition()
+                .duration(800)
+                .attrTween("d", function (d) {
+                    const i = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
+                    return function (t) { return arc(i(t)); };
+                });
+
+            // Center text
+            svg.append("text")
+                .attr("text-anchor", "middle")
+                .attr("dy", "-0.3em")
+                .attr("font-size", "28px")
+                .attr("font-weight", "700")
+                .attr("fill", "var(--text)")
+                .text(cases.length);
+
+            svg.append("text")
+                .attr("text-anchor", "middle")
+                .attr("dy", "1.2em")
+                .attr("font-size", "11px")
+                .attr("fill", "var(--text-tertiary)")
+                .attr("text-transform", "uppercase")
+                .text("Total Cases");
+
+            // Legend
+            const legend = d3.select(container).select("svg").append("g")
+                .attr("transform", "translate(" + (width + 16) + ",40)");
+
+            grouped.forEach((d, i) => {
+                const g = legend.append("g").attr("transform", "translate(0," + (i * 26) + ")");
+                g.append("rect").attr("width", 12).attr("height", 12).attr("rx", 3).attr("fill", colorMap[d.label] || "#888");
+                g.append("text").attr("x", 18).attr("y", 10).attr("font-size", "12px").attr("fill", "var(--text-secondary)").text(d.label + " (" + d.count + ")");
+            });
+        }
+
+        // ─── Main Init ────────────────────────────────────────
+        async function init() {
+            const accountId = getAccountId();
+            if (!accountId) {
+                document.getElementById("loading-screen").classList.add("hidden");
+                document.getElementById("error-screen").classList.remove("hidden");
+                document.getElementById("error-message").textContent =
+                    "No account ID found. This page should be embedded as a web resource on an Account form, or pass an account GUID via the 'data' query parameter.";
+                return;
+            }
+
+            try {
+                // Fetch all data in parallel
+                const [account, casesRes, oppsRes, contactsRes] = await Promise.all([
+                    fetchAccount(accountId),
+                    fetchCases(accountId),
+                    fetchOpportunities(accountId),
+                    fetchContacts(accountId),
+                ]);
+
+                const cases = casesRes.value || [];
+                const opps = oppsRes.value || [];
+                const contacts = contactsRes.value || [];
+
+                // Render everything
+                renderHeader(account);
+                renderKPIs(cases, opps, contacts);
+                renderOppsTable(opps);
+                renderCasesTable(cases);
+                renderContacts(contacts);
+                drawPipelineChart(opps);
+                drawCasesDonut(cases);
+
+                // Show dashboard
+                document.getElementById("loading-screen").classList.add("hidden");
+                document.getElementById("dashboard").classList.remove("hidden");
+
+            } catch (err) {
+                console.error("Customer 360 load failed:", err);
+                document.getElementById("loading-screen").classList.add("hidden");
+                document.getElementById("error-screen").classList.remove("hidden");
+                document.getElementById("error-message").textContent =
+                    "Failed to load account data: " + err.message;
+            }
+        }
+
+        // Start
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", init);
+        } else {
+            init();
+        }
+    })();
+    </script>
+</body>
+</html>
