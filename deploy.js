@@ -27,7 +27,10 @@ const PUBLISHER_PREFIX = "cr4e0"; // will be overridden by the default publisher
 // Files to upload as web resources
 const WEB_RESOURCE_FILES = [
     { file: "customer360.html", displayName: "Customer 360 - Dashboard", type: 1 }, // HTML (single-file embedded page)
+    { file: "contact360.html", displayName: "Contact 360 - Profile Card", type: 1 }, // HTML (contact profile card)
 ];
+
+const CACHE_FILE = path.join(__dirname, ".msal-cache.json");
 
 let accessToken = null;
 
@@ -43,6 +46,28 @@ async function authenticate() {
 
     const pca = new msal.PublicClientApplication(config);
 
+    // Restore persistent cache
+    if (fs.existsSync(CACHE_FILE)) {
+        pca.getTokenCache().deserialize(fs.readFileSync(CACHE_FILE, "utf-8"));
+    }
+
+    // Try silent auth first
+    const accounts = await pca.getTokenCache().getAllAccounts();
+    if (accounts.length > 0) {
+        try {
+            const silentResponse = await pca.acquireTokenSilent({
+                scopes: [`${CRM_BASE_URL}/.default`],
+                account: accounts[0],
+            });
+            accessToken = silentResponse.accessToken;
+            fs.writeFileSync(CACHE_FILE, pca.getTokenCache().serialize(), "utf-8");
+            console.log(`✔ Authenticated silently as: ${accounts[0].username}\n`);
+            return silentResponse;
+        } catch (e) {
+            console.log("  Silent auth failed, falling back to device code...\n");
+        }
+    }
+
     const deviceCodeRequest = {
         scopes: [`${CRM_BASE_URL}/.default`],
         deviceCodeCallback: (response) => {
@@ -55,6 +80,7 @@ async function authenticate() {
 
     const response = await pca.acquireTokenByDeviceCode(deviceCodeRequest);
     accessToken = response.accessToken;
+    fs.writeFileSync(CACHE_FILE, pca.getTokenCache().serialize(), "utf-8");
     console.log(`✔ Authenticated as: ${response.account.username}\n`);
     return response;
 }
