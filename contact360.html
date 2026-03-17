@@ -412,17 +412,6 @@
             margin-left: 44px;
             margin-right: 6px;
         }
-        .gauge-wrap {
-            width: 64px; height: 38px;
-            flex-shrink: 0;
-            position: relative;
-        }
-        .gauge-wrap svg { width: 64px; height: 38px; }
-        .gauge-track { stroke: var(--bar-track); }
-        .gauge-fill { transition: stroke-dashoffset 0.8s ease; }
-        .gauge-fill.orange { stroke: var(--bar-fill); }
-        .gauge-fill.green { stroke: var(--bar-fill-green); }
-        .gauge-fill.blue { stroke: #5ac8fa; }
         .insight-body { flex: 1; min-width: 0; }
         .insight-pill {
             display: inline-block;
@@ -825,12 +814,6 @@
                     </div>
                 </div>
                 <div class="insight-card" id="insight-ltv" style="display:none;">
-                    <div class="gauge-wrap">
-                        <svg viewBox="0 0 64 38">
-                            <path d="M6 34 A26 26 0 0 1 58 34" fill="none" class="gauge-track" stroke-width="6" stroke-linecap="round"/>
-                            <path d="M6 34 A26 26 0 0 1 58 34" fill="none" class="gauge-fill blue" stroke-width="6" stroke-linecap="round" id="gauge-ltv" stroke-dasharray="82" stroke-dashoffset="82"/>
-                        </svg>
-                    </div>
                     <div class="insight-body">
                         <div class="insight-pill" id="pill-ltv"></div>
                         <div class="insight-compare" id="compare-ltv"></div>
@@ -855,12 +838,6 @@
                 </div>
                 <div class="progress-bar"><div class="progress-fill orange" id="bar-propensity"></div></div>
                 <div class="insight-card" id="insight-propensity" style="display:none;">
-                    <div class="gauge-wrap">
-                        <svg viewBox="0 0 64 38">
-                            <path d="M6 34 A26 26 0 0 1 58 34" fill="none" class="gauge-track" stroke-width="6" stroke-linecap="round"/>
-                            <path d="M6 34 A26 26 0 0 1 58 34" fill="none" class="gauge-fill orange" stroke-width="6" stroke-linecap="round" id="gauge-propensity" stroke-dasharray="82" stroke-dashoffset="82"/>
-                        </svg>
-                    </div>
                     <div class="insight-body">
                         <div class="insight-pill" id="pill-propensity"></div>
                         <div class="insight-compare" id="compare-propensity"></div>
@@ -885,12 +862,6 @@
                 </div>
                 <div class="progress-bar"><div class="progress-fill green" id="bar-engagement"></div></div>
                 <div class="insight-card" id="insight-engagement" style="display:none;">
-                    <div class="gauge-wrap">
-                        <svg viewBox="0 0 64 38">
-                            <path d="M6 34 A26 26 0 0 1 58 34" fill="none" class="gauge-track" stroke-width="6" stroke-linecap="round"/>
-                            <path d="M6 34 A26 26 0 0 1 58 34" fill="none" class="gauge-fill green" stroke-width="6" stroke-linecap="round" id="gauge-engagement" stroke-dasharray="82" stroke-dashoffset="82"/>
-                        </svg>
-                    </div>
                     <div class="insight-body">
                         <div class="insight-pill" id="pill-engagement"></div>
                         <div class="insight-compare" id="compare-engagement"></div>
@@ -1503,12 +1474,6 @@
             return { label: "Low Value", css: "low" };
         }
 
-        function setGauge(gaugeId, pct) {
-            // Arc length is 82 (half-circle). offset = 82 * (1 - pct/100)
-            const el = document.getElementById(gaugeId);
-            if (el) el.setAttribute("stroke-dashoffset", String(82 * (1 - Math.min(pct, 100) / 100)));
-        }
-
         function renderInsights(stats) {
             if (!stats) return;
             const total = stats.total;
@@ -1523,7 +1488,6 @@
                 document.getElementById("pill-engagement").textContent = level.label;
                 document.getElementById("pill-engagement").className = "insight-pill " + level.css;
                 document.getElementById("compare-engagement").textContent = cLabel + (pct != null ? " • Top " + (100 - pct) + "%" : "");
-                setGauge("gauge-engagement", eng);
             }
 
             // Propensity
@@ -1535,7 +1499,6 @@
                 document.getElementById("pill-propensity").textContent = level.label;
                 document.getElementById("pill-propensity").className = "insight-pill " + level.css;
                 document.getElementById("compare-propensity").textContent = cLabel + (pct != null ? " • Top " + (100 - pct) + "%" : "");
-                setGauge("gauge-propensity", prop);
             }
 
             // Lifetime Value
@@ -1547,7 +1510,6 @@
                 document.getElementById("pill-ltv").textContent = level.label;
                 document.getElementById("pill-ltv").className = "insight-pill " + level.css;
                 document.getElementById("compare-ltv").textContent = cLabel + (pct != null ? " • Top " + (100 - pct) + "%" : "");
-                setGauge("gauge-ltv", pct != null ? pct : 50);
             }
         }
 
