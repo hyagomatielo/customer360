@@ -473,6 +473,106 @@
         /* Hidden file input */
         #photo-upload { display: none; }
 
+        /* ─── Relationship Health Section ────── */
+        .rh-section {
+            padding: 18px 0;
+            border-bottom: 1px solid var(--divider);
+        }
+        .rh-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+        .rh-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-white);
+        }
+        .rh-info-icon {
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            border: 1.5px solid var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: help;
+            flex-shrink: 0;
+        }
+        .rh-updated {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+        .rh-status-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .rh-health-label {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-white);
+        }
+        .rh-health-label.good { color: #4cd964; }
+        .rh-health-label.fair { color: #f5a623; }
+        .rh-health-label.poor { color: #ff3b30; }
+        .profile-card.dark-text .rh-health-label.good { color: #1a8a2e; }
+        .profile-card.dark-text .rh-health-label.fair { color: #c07d00; }
+        .profile-card.dark-text .rh-health-label.poor { color: #c0392b; }
+        .rh-trend-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .rh-trend-badge.improving { background: rgba(76,217,100,0.18); color: #4cd964; }
+        .rh-trend-badge.steady { background: rgba(90,200,250,0.18); color: #5ac8fa; }
+        .rh-trend-badge.declining { background: rgba(175,82,222,0.18); color: #af52de; }
+        .profile-card.dark-text .rh-trend-badge.improving { background: rgba(26,138,46,0.15); color: #1a8a2e; }
+        .profile-card.dark-text .rh-trend-badge.steady { background: rgba(0,122,255,0.12); color: #0064d2; }
+        .profile-card.dark-text .rh-trend-badge.declining { background: rgba(175,82,222,0.15); color: #7b2d8e; }
+        .rh-trend-badge svg {
+            width: 14px; height: 14px;
+            fill: currentColor;
+        }
+        .rh-interaction {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .rh-interaction-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            min-width: 110px;
+        }
+        .rh-interaction-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-white);
+        }
+        .rh-no-data {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-style: italic;
+            padding: 6px 0;
+        }
+        .profile-card.dark-text .rh-title { color: #1a1a2e; }
+        .profile-card.dark-text .rh-info-icon { border-color: rgba(26,26,46,0.4); color: rgba(26,26,46,0.5); }
+        .profile-card.dark-text .rh-updated { color: rgba(26,26,46,0.5); }
+        .profile-card.dark-text .rh-interaction-label { color: rgba(26,26,46,0.5); }
+        .profile-card.dark-text .rh-interaction-value { color: #1a1a2e; }
+        .profile-card.dark-text .rh-no-data { color: rgba(26,26,46,0.4); }
+        .profile-card.dark-text .rh-section { border-bottom-color: rgba(26,26,46,0.12); }
+
         /* Loyalty dropdown styling */
         .inline-edit select {
             appearance: none;
@@ -640,6 +740,27 @@
                         <button class="edit-btn cancel" onclick="cancelEdit('val-segment','edit-segment')">&#10007;</button>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Relationship Health Section -->
+        <div class="rh-section" id="rh-section" style="display:none;">
+            <div class="rh-header">
+                <span class="rh-title">Relationship health</span>
+                <span class="rh-info-icon" title="Powered by Relationship Analytics from Dynamics 365 Sales Insights">i</span>
+                <span class="rh-updated" id="rh-updated"></span>
+            </div>
+            <div class="rh-status-row" id="rh-status-row">
+                <span class="rh-health-label" id="rh-health-label"></span>
+                <span class="rh-trend-badge" id="rh-trend-badge"></span>
+            </div>
+            <div class="rh-interaction">
+                <span class="rh-interaction-label">Next interaction:</span>
+                <span class="rh-interaction-value" id="rh-next-interaction">Not Scheduled</span>
+            </div>
+            <div class="rh-interaction">
+                <span class="rh-interaction-label">Last interaction:</span>
+                <span class="rh-interaction-value" id="rh-last-interaction">Not Scheduled</span>
             </div>
         </div>
 
@@ -1173,6 +1294,88 @@
             });
         }
 
+        // ─── Relationship Health ─────────────────────────────────
+        const HEALTH_STATE_MAP = { 0: "Good", 1: "Fair", 2: "Poor", 3: "Not enough info", 4: "No Closed Activities", 5: "Computing...", 6: "Error", 7: "Too old" };
+        const HEALTH_STATE_CSS = { 0: "good", 1: "fair", 2: "poor" };
+        const HEALTH_TREND_MAP = { 0: "Improving", 1: "Steady", 2: "Declining", 3: "N/A", 4: "Error", 5: "N/A" };
+        const HEALTH_TREND_CSS = { 0: "improving", 1: "steady", 2: "declining" };
+        const TREND_ICONS = {
+            0: '<svg viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z"/></svg>',
+            1: '<svg viewBox="0 0 24 24"><path d="M4 11h16v2H4z"/></svg>',
+            2: '<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>',
+        };
+
+        async function fetchRelationshipHealth() {
+            try {
+                const data = await crmApiFetch("/msdyn_contactkpiitems?$filter=_msdyn_contactid_value eq " + contactId + "&$top=1&$select=msdyn_relationshiphealthscorestate,msdyn_relationshiphealthscorevalue,msdyn_relationshiphealthtrend,modifiedon");
+                return data && data.value && data.value.length > 0 ? data.value[0] : null;
+            } catch (e) { return null; }
+        }
+
+        async function fetchNextInteraction() {
+            try {
+                const now = new Date().toISOString();
+                const data = await crmApiFetch("/activitypointers?$filter=_regardingobjectid_value eq " + contactId + " and scheduledstart gt " + now + " and statecode eq 0&$orderby=scheduledstart asc&$top=1&$select=subject,scheduledstart,activitytypecode");
+                return data && data.value && data.value.length > 0 ? data.value[0] : null;
+            } catch (e) { return null; }
+        }
+
+        async function fetchLastInteraction() {
+            try {
+                const data = await crmApiFetch("/activitypointers?$filter=_regardingobjectid_value eq " + contactId + " and statecode eq 1&$orderby=actualend desc&$top=1&$select=subject,actualend,activitytypecode");
+                return data && data.value && data.value.length > 0 ? data.value[0] : null;
+            } catch (e) { return null; }
+        }
+
+        function renderRelationshipHealth(kpi, nextAct, lastAct) {
+            const section = document.getElementById("rh-section");
+            if (!kpi) { section.style.display = "none"; return; }
+
+            section.style.display = "";
+            const state = kpi.msdyn_relationshiphealthscorestate;
+            const trend = kpi.msdyn_relationshiphealthtrend;
+
+            // Health label
+            const label = document.getElementById("rh-health-label");
+            label.textContent = HEALTH_STATE_MAP[state] || "Unknown";
+            label.className = "rh-health-label " + (HEALTH_STATE_CSS[state] || "");
+
+            // Trend badge
+            const badge = document.getElementById("rh-trend-badge");
+            if (trend != null && HEALTH_TREND_MAP[trend] && trend <= 2) {
+                badge.innerHTML = (TREND_ICONS[trend] || "") + HEALTH_TREND_MAP[trend];
+                badge.className = "rh-trend-badge " + (HEALTH_TREND_CSS[trend] || "");
+                badge.style.display = "";
+            } else {
+                badge.style.display = "none";
+            }
+
+            // Last updated
+            const updated = kpi.modifiedon;
+            if (updated) {
+                const d = new Date(updated);
+                document.getElementById("rh-updated").textContent = "Last updated:" + d.toLocaleDateString("en-US") + " " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+            }
+
+            // Next interaction
+            const nextEl = document.getElementById("rh-next-interaction");
+            if (nextAct && nextAct.scheduledstart) {
+                const nd = new Date(nextAct.scheduledstart);
+                nextEl.textContent = nd.toLocaleDateString("en-US") + " — " + (nextAct.subject || nextAct.activitytypecode);
+            } else {
+                nextEl.textContent = "Not Scheduled";
+            }
+
+            // Last interaction
+            const lastEl = document.getElementById("rh-last-interaction");
+            if (lastAct && lastAct.actualend) {
+                const ld = new Date(lastAct.actualend);
+                lastEl.textContent = ld.toLocaleDateString("en-US") + " — " + (lastAct.subject || lastAct.activitytypecode);
+            } else {
+                lastEl.textContent = "Not Scheduled";
+            }
+        }
+
         // ─── Color Picker ────────────────────────────────────────
         const COLOR_PRESETS = [
             // Solid-feel gradients (dark bg → light text)
@@ -1312,6 +1515,11 @@
                 wireClickToEdit();
                 setupPhotoUpload();
                 setupColorPicker();
+
+                // Load Relationship Health data in parallel
+                Promise.all([fetchRelationshipHealth(), fetchNextInteraction(), fetchLastInteraction()])
+                    .then(([kpi, nextAct, lastAct]) => renderRelationshipHealth(kpi, nextAct, lastAct))
+                    .catch(() => {});
             } catch (err) {
                 document.getElementById("loading-screen").classList.add("hidden");
                 document.getElementById("error-screen").classList.remove("hidden");
