@@ -128,6 +128,7 @@
             display: flex;
             gap: 8px;
             align-items: center;
+            margin-bottom: 8px;
         }
         .custom-color-row label {
             font-size: 11px;
@@ -156,6 +157,26 @@
             transition: background var(--transition);
         }
         .apply-custom-color:hover { background: rgba(255,255,255,0.25); }
+        .border-color-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .border-color-row label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            white-space: nowrap;
+        }
+        .border-color-row input[type="color"] {
+            width: 32px; height: 28px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            background: transparent;
+            cursor: pointer;
+            padding: 1px;
+        }
+        .border-color-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+        .border-color-row input[type="color"]::-webkit-color-swatch { border-radius: 3px; border: none; }
 
         body {
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -172,13 +193,38 @@
             border-radius: var(--radius);
             padding: 28px 24px 24px;
             color: var(--text-white);
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
             gap: 0;
             position: relative;
             overflow: hidden;
         }
+
+        /* Dark text mode for light backgrounds */
+        .profile-card.dark-text { color: #1a1a2e; }
+        .profile-card.dark-text .contact-name,
+        .profile-card.dark-text .info-value,
+        .profile-card.dark-text .info-icon svg { color: #1a1a2e; fill: #1a1a2e; }
+        .profile-card.dark-text .contact-location,
+        .profile-card.dark-text .loading-text { color: rgba(26,26,46,0.7); }
+        .profile-card.dark-text .info-label { color: rgba(26,26,46,0.5); }
+        .profile-card.dark-text .info-value.empty { color: rgba(26,26,46,0.4); }
+        .profile-card.dark-text .info-section { border-bottom-color: rgba(26,26,46,0.12); }
+        .profile-card.dark-text .score-section { border-bottom-color: rgba(26,26,46,0.12); }
+        .profile-card.dark-text .info-icon { background: rgba(26,26,46,0.08); border-color: rgba(26,26,46,0.15); }
+        .profile-card.dark-text .info-row:hover,
+        .profile-card.dark-text .score-row:hover,
+        .profile-card.dark-text .contact-name:hover { background: rgba(26,26,46,0.06); }
+        .profile-card.dark-text .progress-bar { background: rgba(26,26,46,0.15); }
+        .profile-card.dark-text .inline-edit input,
+        .profile-card.dark-text .inline-edit select { background: rgba(26,26,46,0.08); border-color: rgba(26,26,46,0.2); color: #1a1a2e; }
+        .profile-card.dark-text .inline-edit input::placeholder { color: rgba(26,26,46,0.35); }
+        .profile-card.dark-text .edit-btn { background: rgba(26,26,46,0.12); color: #1a1a2e; }
+        .profile-card.dark-text .edit-btn.save { background: rgba(16,124,16,0.2); }
+        .profile-card.dark-text .edit-btn.cancel { background: rgba(209,52,56,0.15); }
+        .profile-card.dark-text .photo-placeholder { color: #1a1a2e; border-color: #a07030; }
+        .profile-card.dark-text .color-edit-btn { background: rgba(26,26,46,0.08); border-color: rgba(26,26,46,0.15); }
+        .profile-card.dark-text .color-edit-btn img { filter: brightness(0); }
 
         /* ─── Loading / Error States ────────────── */
         .loading-state {
@@ -459,6 +505,10 @@
             <input type="color" id="custom-color-1" value="#1a6da5" />
             <input type="color" id="custom-color-2" value="#2980b9" />
             <button class="apply-custom-color" onclick="applyCustomColors()">Apply</button>
+        </div>
+        <div class="border-color-row">
+            <label>Photo border:</label>
+            <input type="color" id="border-color-picker" value="#d4a843" oninput="applyBorderColor(this.value)" />
         </div>
     </div>
 
@@ -1125,20 +1175,20 @@
 
         // ─── Color Picker ────────────────────────────────────────
         const COLOR_PRESETS = [
-            // Solid-feel gradients
-            { name: "Ocean Blue", gradient: "linear-gradient(160deg, #1a6da5 0%, #2980b9 30%, #1f7bb5 60%, #1a6da5 100%)" },
-            { name: "Royal Purple", gradient: "linear-gradient(160deg, #5b2c8e 0%, #7b4db5 30%, #6a3fa0 60%, #5b2c8e 100%)" },
-            { name: "Forest Green", gradient: "linear-gradient(160deg, #1a7a4a 0%, #27ae60 30%, #1e8c52 60%, #1a7a4a 100%)" },
-            { name: "Charcoal", gradient: "linear-gradient(160deg, #2c3e50 0%, #34495e 30%, #2c3e50 60%, #232d38 100%)" },
+            // Solid-feel gradients (dark bg → light text)
+            { name: "Ocean Blue", gradient: "linear-gradient(160deg, #1a6da5 0%, #2980b9 30%, #1f7bb5 60%, #1a6da5 100%)", textMode: "light" },
+            { name: "Royal Purple", gradient: "linear-gradient(160deg, #5b2c8e 0%, #7b4db5 30%, #6a3fa0 60%, #5b2c8e 100%)", textMode: "light" },
+            { name: "Forest Green", gradient: "linear-gradient(160deg, #1a7a4a 0%, #27ae60 30%, #1e8c52 60%, #1a7a4a 100%)", textMode: "light" },
+            { name: "Charcoal", gradient: "linear-gradient(160deg, #2c3e50 0%, #34495e 30%, #2c3e50 60%, #232d38 100%)", textMode: "light" },
             // Faded / mixed modern
-            { name: "Sunset Fade", gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #f093fb 100%)" },
-            { name: "Aurora", gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)" },
-            { name: "Emerald Mist", gradient: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)" },
-            { name: "Warm Dusk", gradient: "linear-gradient(135deg, #c94b4b 0%, #4b134f 100%)" },
-            { name: "Peach Dream", gradient: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)" },
-            { name: "Cool Slate", gradient: "linear-gradient(135deg, #536976 0%, #292e49 100%)" },
-            { name: "Berry", gradient: "linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)" },
-            { name: "Nordic", gradient: "linear-gradient(135deg, #43cea2 0%, #185a9d 100%)" },
+            { name: "Sunset Fade", gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #f093fb 100%)", textMode: "light" },
+            { name: "Aurora", gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)", textMode: "light" },
+            { name: "Emerald Mist", gradient: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)", textMode: "dark" },
+            { name: "Warm Dusk", gradient: "linear-gradient(135deg, #c94b4b 0%, #4b134f 100%)", textMode: "light" },
+            { name: "Peach Dream", gradient: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", textMode: "dark" },
+            { name: "Cool Slate", gradient: "linear-gradient(135deg, #536976 0%, #292e49 100%)", textMode: "light" },
+            { name: "Berry", gradient: "linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)", textMode: "light" },
+            { name: "Nordic", gradient: "linear-gradient(135deg, #43cea2 0%, #185a9d 100%)", textMode: "light" },
         ];
 
         function setupColorPicker() {
@@ -1153,7 +1203,7 @@
                 swatch.style.background = preset.gradient;
                 swatch.title = preset.name;
                 swatch.addEventListener("click", () => {
-                    applyCardGradient(preset.gradient);
+                    applyCardGradient(preset.gradient, preset.textMode);
                     document.querySelectorAll(".color-swatch").forEach(s => s.classList.remove("active"));
                     swatch.classList.add("active");
                 });
@@ -1175,20 +1225,63 @@
 
             // Restore saved color
             const saved = localStorage.getItem("contact360_cardGradient");
-            if (saved) applyCardGradient(saved);
+            const savedMode = localStorage.getItem("contact360_textMode");
+            if (saved) applyCardGradient(saved, savedMode || "light");
+
+            // Restore saved border color
+            const savedBorder = localStorage.getItem("contact360_borderColor");
+            if (savedBorder) {
+                applyBorderColor(savedBorder);
+                document.getElementById("border-color-picker").value = savedBorder;
+            }
         }
 
-        function applyCardGradient(gradient) {
-            document.getElementById("profile-card").style.background = gradient;
+        function applyCardGradient(gradient, textMode) {
+            const card = document.getElementById("profile-card");
+            card.style.background = gradient;
             localStorage.setItem("contact360_cardGradient", gradient);
+
+            // Auto-detect text mode if not provided
+            if (!textMode) textMode = detectTextMode(gradient);
+            localStorage.setItem("contact360_textMode", textMode);
+
+            if (textMode === "dark") {
+                card.classList.add("dark-text");
+            } else {
+                card.classList.remove("dark-text");
+            }
+        }
+
+        function detectTextMode(gradient) {
+            // Extract hex colors from gradient string and compute average luminance
+            const hexes = gradient.match(/#[0-9a-fA-F]{6}/g) || [];
+            if (hexes.length === 0) return "light";
+            let totalLum = 0;
+            hexes.forEach(hex => {
+                const r = parseInt(hex.slice(1,3), 16);
+                const g = parseInt(hex.slice(3,5), 16);
+                const b = parseInt(hex.slice(5,7), 16);
+                // Relative luminance (perceptual)
+                totalLum += (0.299 * r + 0.587 * g + 0.114 * b);
+            });
+            const avgLum = totalLum / hexes.length;
+            // If average luminance > 160, background is light → use dark text
+            return avgLum > 160 ? "dark" : "light";
         }
 
         function applyCustomColors() {
             const c1 = document.getElementById("custom-color-1").value;
             const c2 = document.getElementById("custom-color-2").value;
             const gradient = "linear-gradient(160deg, " + c1 + " 0%, " + c2 + " 100%)";
-            applyCardGradient(gradient);
+            applyCardGradient(gradient); // auto-detect text mode
             document.querySelectorAll(".color-swatch").forEach(s => s.classList.remove("active"));
+        }
+
+        function applyBorderColor(color) {
+            document.querySelectorAll(".photo, .photo-placeholder").forEach(el => {
+                el.style.borderColor = color;
+            });
+            localStorage.setItem("contact360_borderColor", color);
         }
 
         // ─── Toast ──────────────────────────────────────────────
