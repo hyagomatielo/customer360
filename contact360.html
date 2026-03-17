@@ -403,6 +403,47 @@
         .progress-fill.orange { background: var(--bar-fill); }
         .progress-fill.green { background: var(--bar-fill-green); }
 
+        /* ─── Gauge Insight Cards ────────────────── */
+        .insight-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 8px;
+            margin-left: 44px;
+            margin-right: 6px;
+        }
+        .gauge-wrap {
+            width: 64px; height: 38px;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .gauge-wrap svg { width: 64px; height: 38px; }
+        .gauge-track { stroke: var(--bar-track); }
+        .gauge-fill { transition: stroke-dashoffset 0.8s ease; }
+        .gauge-fill.orange { stroke: var(--bar-fill); }
+        .gauge-fill.green { stroke: var(--bar-fill-green); }
+        .gauge-fill.blue { stroke: #5ac8fa; }
+        .insight-body { flex: 1; min-width: 0; }
+        .insight-pill {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+        .insight-pill.high { background: rgba(0,60,0,0.7); color: #6ef28e; }
+        .insight-pill.medium { background: rgba(80,50,0,0.7); color: #ffd06a; }
+        .insight-pill.low { background: rgba(80,10,10,0.7); color: #ff8a80; }
+        .profile-card.dark-text .insight-pill.high { background: rgba(200,245,210,0.85); color: #0d6e1e; }
+        .profile-card.dark-text .insight-pill.medium { background: rgba(255,240,200,0.85); color: #8a5600; }
+        .profile-card.dark-text .insight-pill.low { background: rgba(255,220,215,0.85); color: #a11b12; }
+        .insight-compare {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .profile-card.dark-text .insight-compare { color: rgba(26,26,46,0.5); }
+
         /* ─── Inline Edit ───────────────────────── */
         .inline-edit {
             display: none;
@@ -783,6 +824,18 @@
                         </div>
                     </div>
                 </div>
+                <div class="insight-card" id="insight-ltv" style="display:none;">
+                    <div class="gauge-wrap">
+                        <svg viewBox="0 0 64 38">
+                            <path d="M6 34 A26 26 0 0 1 58 34" fill="none" class="gauge-track" stroke-width="6" stroke-linecap="round"/>
+                            <path d="M6 34 A26 26 0 0 1 58 34" fill="none" class="gauge-fill blue" stroke-width="6" stroke-linecap="round" id="gauge-ltv" stroke-dasharray="82" stroke-dashoffset="82"/>
+                        </svg>
+                    </div>
+                    <div class="insight-body">
+                        <div class="insight-pill" id="pill-ltv"></div>
+                        <div class="insight-compare" id="compare-ltv"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="score-row" data-field="cr4e0_propensitytopurchase" data-type="integer">
@@ -801,6 +854,18 @@
                     </div>
                 </div>
                 <div class="progress-bar"><div class="progress-fill orange" id="bar-propensity"></div></div>
+                <div class="insight-card" id="insight-propensity" style="display:none;">
+                    <div class="gauge-wrap">
+                        <svg viewBox="0 0 64 38">
+                            <path d="M6 34 A26 26 0 0 1 58 34" fill="none" class="gauge-track" stroke-width="6" stroke-linecap="round"/>
+                            <path d="M6 34 A26 26 0 0 1 58 34" fill="none" class="gauge-fill orange" stroke-width="6" stroke-linecap="round" id="gauge-propensity" stroke-dasharray="82" stroke-dashoffset="82"/>
+                        </svg>
+                    </div>
+                    <div class="insight-body">
+                        <div class="insight-pill" id="pill-propensity"></div>
+                        <div class="insight-compare" id="compare-propensity"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="score-row" data-field="cr4e0_engagementscore" data-type="integer">
@@ -819,6 +884,18 @@
                     </div>
                 </div>
                 <div class="progress-bar"><div class="progress-fill green" id="bar-engagement"></div></div>
+                <div class="insight-card" id="insight-engagement" style="display:none;">
+                    <div class="gauge-wrap">
+                        <svg viewBox="0 0 64 38">
+                            <path d="M6 34 A26 26 0 0 1 58 34" fill="none" class="gauge-track" stroke-width="6" stroke-linecap="round"/>
+                            <path d="M6 34 A26 26 0 0 1 58 34" fill="none" class="gauge-fill green" stroke-width="6" stroke-linecap="round" id="gauge-engagement" stroke-dasharray="82" stroke-dashoffset="82"/>
+                        </svg>
+                    </div>
+                    <div class="insight-body">
+                        <div class="insight-pill" id="pill-engagement"></div>
+                        <div class="insight-compare" id="compare-engagement"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1378,6 +1455,102 @@
             }
         }
 
+        // ─── Contact Base Stats & Insights ──────────────────
+        async function fetchContactBaseStats() {
+            try {
+                const data = await crmApiFetch("/contacts?$select=cr4e0_lifetimevalue,cr4e0_propensitytopurchase,cr4e0_engagementscore&$filter=statecode eq 0");
+                if (!data || !data.value) return null;
+                const contacts = data.value;
+                const ltValues = contacts.map(c => c.cr4e0_lifetimevalue).filter(v => v != null);
+                const propValues = contacts.map(c => c.cr4e0_propensitytopurchase).filter(v => v != null);
+                const engValues = contacts.map(c => c.cr4e0_engagementscore).filter(v => v != null);
+                return { total: contacts.length, ltValues, propValues, engValues };
+            } catch (e) { return null; }
+        }
+
+        function computePercentile(values, current) {
+            if (!values || values.length === 0 || current == null) return null;
+            const below = values.filter(v => v < current).length;
+            return Math.round((below / values.length) * 100);
+        }
+
+        function formatCount(n) {
+            if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "K";
+            return String(n);
+        }
+
+        function getScoreLevel(pct) {
+            if (pct >= 70) return { label: "High", css: "high" };
+            if (pct >= 35) return { label: "Medium", css: "medium" };
+            return { label: "Low", css: "low" };
+        }
+
+        function getEngagementLevel(score) {
+            if (score >= 70) return { label: "Highly Engaged", css: "high" };
+            if (score >= 40) return { label: "Moderately Engaged", css: "medium" };
+            return { label: "Low Engagement", css: "low" };
+        }
+
+        function getPropensityLevel(score) {
+            if (score >= 70) return { label: "High Propensity", css: "high" };
+            if (score >= 40) return { label: "Moderate Propensity", css: "medium" };
+            return { label: "Low Propensity", css: "low" };
+        }
+
+        function getLtvLevel(pctile) {
+            if (pctile >= 70) return { label: "High Value", css: "high" };
+            if (pctile >= 35) return { label: "Medium Value", css: "medium" };
+            return { label: "Low Value", css: "low" };
+        }
+
+        function setGauge(gaugeId, pct) {
+            // Arc length is 82 (half-circle). offset = 82 * (1 - pct/100)
+            const el = document.getElementById(gaugeId);
+            if (el) el.setAttribute("stroke-dashoffset", String(82 * (1 - Math.min(pct, 100) / 100)));
+        }
+
+        function renderInsights(stats) {
+            if (!stats) return;
+            const total = stats.total;
+            const cLabel = "Compared to " + formatCount(total) + " contacts";
+
+            // Engagement
+            const eng = contactData.cr4e0_engagementscore;
+            if (eng != null) {
+                const pct = computePercentile(stats.engValues, eng);
+                const level = getEngagementLevel(eng);
+                document.getElementById("insight-engagement").style.display = "";
+                document.getElementById("pill-engagement").textContent = level.label;
+                document.getElementById("pill-engagement").className = "insight-pill " + level.css;
+                document.getElementById("compare-engagement").textContent = cLabel + (pct != null ? " • Top " + (100 - pct) + "%" : "");
+                setGauge("gauge-engagement", eng);
+            }
+
+            // Propensity
+            const prop = contactData.cr4e0_propensitytopurchase;
+            if (prop != null) {
+                const pct = computePercentile(stats.propValues, prop);
+                const level = getPropensityLevel(prop);
+                document.getElementById("insight-propensity").style.display = "";
+                document.getElementById("pill-propensity").textContent = level.label;
+                document.getElementById("pill-propensity").className = "insight-pill " + level.css;
+                document.getElementById("compare-propensity").textContent = cLabel + (pct != null ? " • Top " + (100 - pct) + "%" : "");
+                setGauge("gauge-propensity", prop);
+            }
+
+            // Lifetime Value
+            const ltv = contactData.cr4e0_lifetimevalue;
+            if (ltv != null) {
+                const pct = computePercentile(stats.ltValues, ltv);
+                const level = getLtvLevel(pct != null ? pct : 50);
+                document.getElementById("insight-ltv").style.display = "";
+                document.getElementById("pill-ltv").textContent = level.label;
+                document.getElementById("pill-ltv").className = "insight-pill " + level.css;
+                document.getElementById("compare-ltv").textContent = cLabel + (pct != null ? " • Top " + (100 - pct) + "%" : "");
+                setGauge("gauge-ltv", pct != null ? pct : 50);
+            }
+        }
+
         // ─── Color Picker ────────────────────────────────────────
         const COLOR_PRESETS = [
             // Solid-feel gradients (dark bg → light text)
@@ -1522,6 +1695,9 @@
                 Promise.all([fetchRelationshipHealth(), fetchNextInteraction(), fetchLastInteraction()])
                     .then(([kpi, nextAct, lastAct]) => renderRelationshipHealth(kpi, nextAct, lastAct))
                     .catch(() => {});
+
+                // Load contact base stats for comparative insights
+                fetchContactBaseStats().then(stats => renderInsights(stats)).catch(() => {});
             } catch (err) {
                 document.getElementById("loading-screen").classList.add("hidden");
                 document.getElementById("error-screen").classList.remove("hidden");
