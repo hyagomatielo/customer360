@@ -226,6 +226,37 @@
         .profile-card.dark-text .color-edit-btn { background: rgba(26,26,46,0.08); border-color: rgba(26,26,46,0.15); }
         .profile-card.dark-text .color-edit-btn img { filter: brightness(0); }
 
+        /* Dark-text loyalty badge overrides */
+        .profile-card.dark-text .loyalty-badge.diamond { color: #0a7a9b; text-shadow: none; }
+        .profile-card.dark-text .loyalty-badge.diamond .tier-text {
+            background: linear-gradient(90deg, #0a7a9b 0%, #045a6e 40%, #0a8aad 60%, #0a7a9b 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .profile-card.dark-text .loyalty-badge.gold { color: #b8860b; text-shadow: none; }
+        .profile-card.dark-text .loyalty-badge.gold .tier-text {
+            background: linear-gradient(90deg, #b8860b 0%, #8b6508 40%, #d4a017 60%, #b8860b 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .profile-card.dark-text .loyalty-badge.silver { color: #666; text-shadow: none; }
+        .profile-card.dark-text .loyalty-badge.silver .tier-text {
+            background: linear-gradient(90deg, #666 0%, #888 40%, #555 60%, #666 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Dark-text progress bar fills — slightly darker for light bgs */
+        .profile-card.dark-text .progress-fill.red { background: #c0392b; }
+        .profile-card.dark-text .progress-fill.yellow { background: #e09400; }
+        .profile-card.dark-text .progress-fill.green { background: #27ae60; }
+
         /* ─── Loading / Error States ────────────── */
         .loading-state {
             display: flex;
@@ -1099,6 +1130,7 @@
         function renderLoyaltyTier(tier) {
             const el = document.getElementById("val-loyalty");
             const iconEl = document.getElementById("loyalty-icon");
+            const isDark = document.getElementById("profile-card").classList.contains("dark-text");
             if (!tier) {
                 el.textContent = "Not set";
                 el.classList.add("empty");
@@ -1111,10 +1143,19 @@
             const t = tier.toLowerCase();
             let emoji = "";
             let cls = "";
-            if (t === "diamond") { emoji = "💎"; cls = "diamond"; iconEl.style.background = "rgba(185,242,255,0.15)"; iconEl.style.borderColor = "rgba(185,242,255,0.4)"; }
-            else if (t === "gold") { emoji = "🥇"; cls = "gold"; iconEl.style.background = "rgba(255,215,0,0.15)"; iconEl.style.borderColor = "rgba(255,215,0,0.4)"; }
-            else if (t === "silver") { emoji = "🥈"; cls = "silver"; iconEl.style.background = "rgba(224,224,224,0.15)"; iconEl.style.borderColor = "rgba(224,224,224,0.4)"; }
-            else { el.textContent = tier; return; }
+            if (t === "diamond") {
+                emoji = "💎"; cls = "diamond";
+                iconEl.style.background = isDark ? "rgba(10,122,155,0.12)" : "rgba(185,242,255,0.15)";
+                iconEl.style.borderColor = isDark ? "rgba(10,122,155,0.3)" : "rgba(185,242,255,0.4)";
+            } else if (t === "gold") {
+                emoji = "🥇"; cls = "gold";
+                iconEl.style.background = isDark ? "rgba(184,134,11,0.12)" : "rgba(255,215,0,0.15)";
+                iconEl.style.borderColor = isDark ? "rgba(184,134,11,0.3)" : "rgba(255,215,0,0.4)";
+            } else if (t === "silver") {
+                emoji = "🥈"; cls = "silver";
+                iconEl.style.background = isDark ? "rgba(100,100,100,0.12)" : "rgba(224,224,224,0.15)";
+                iconEl.style.borderColor = isDark ? "rgba(100,100,100,0.3)" : "rgba(224,224,224,0.4)";
+            } else { el.textContent = tier; return; }
             el.innerHTML = '<span class="loyalty-badge ' + cls + '"><span class="tier-icon">' + emoji + '</span><span class="tier-text">' + tier + '</span></span>';
         }
 
@@ -1613,6 +1654,11 @@
                 card.classList.add("dark-text");
             } else {
                 card.classList.remove("dark-text");
+            }
+
+            // Re-render elements that use JS-computed inline styles
+            if (typeof contactData !== "undefined" && contactData) {
+                renderLoyaltyTier(contactData.cr4e0_loyaltytier);
             }
         }
 
