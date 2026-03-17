@@ -24,6 +24,139 @@
             --transition: 0.2s ease;
         }
 
+        /* ─── Loyalty Tier Effects ───────────────── */
+        .loyalty-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
+        }
+        .loyalty-badge .tier-icon {
+            font-size: 16px;
+            filter: drop-shadow(0 0 4px currentColor);
+        }
+        .loyalty-badge.diamond { color: #b9f2ff; text-shadow: 0 0 8px rgba(185,242,255,0.6); }
+        .loyalty-badge.gold { color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.5); }
+        .loyalty-badge.silver { color: #e0e0e0; text-shadow: 0 0 6px rgba(224,224,224,0.4); }
+
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        .loyalty-badge.diamond .tier-text {
+            background: linear-gradient(90deg, #b9f2ff 0%, #ffffff 40%, #7fdbff 60%, #b9f2ff 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s linear infinite;
+        }
+        .loyalty-badge.gold .tier-text {
+            background: linear-gradient(90deg, #ffd700 0%, #fff5a0 40%, #ffcc00 60%, #ffd700 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s linear infinite;
+        }
+
+        /* ─── Color Picker Panel ─────────────────── */
+        .color-edit-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 28px; height: 28px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.4;
+            transition: opacity var(--transition), background var(--transition);
+            z-index: 10;
+        }
+        .color-edit-btn:hover { opacity: 1; background: rgba(255,255,255,0.2); }
+        .color-edit-btn img { width: 16px; height: 16px; filter: brightness(0) invert(1); }
+
+        .color-picker-panel {
+            position: absolute;
+            top: 44px;
+            right: 10px;
+            background: rgba(15,15,25,0.92);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 16px;
+            z-index: 100;
+            width: 240px;
+            display: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .color-picker-panel.open { display: block; }
+        .color-picker-panel h4 {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+        }
+        .color-swatches {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .color-swatch {
+            width: 100%; aspect-ratio: 1;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.15s, transform 0.15s;
+            position: relative;
+        }
+        .color-swatch:hover { transform: scale(1.1); }
+        .color-swatch.active { border-color: #fff; }
+        .color-swatch::after {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 6px;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+        }
+        .custom-color-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .custom-color-row label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            white-space: nowrap;
+        }
+        .custom-color-row input[type="color"] {
+            width: 32px; height: 28px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            background: transparent;
+            cursor: pointer;
+            padding: 1px;
+        }
+        .custom-color-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+        .custom-color-row input[type="color"]::-webkit-color-swatch { border-radius: 3px; border: none; }
+        .apply-custom-color {
+            flex: 1;
+            padding: 5px 10px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+        .apply-custom-color:hover { background: rgba(255,255,255,0.25); }
+
         body {
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
             background: transparent;
@@ -43,6 +176,8 @@
             display: flex;
             flex-direction: column;
             gap: 0;
+            position: relative;
+            overflow: hidden;
         }
 
         /* ─── Loading / Error States ────────────── */
@@ -177,6 +312,7 @@
             font-weight: 600;
             color: var(--text-white);
             word-break: break-word;
+            white-space: pre-line;
         }
         .info-value.empty { color: var(--text-muted); font-style: italic; font-weight: 400; }
 
@@ -206,12 +342,12 @@
         }
 
         .progress-bar {
-            width: 100%;
             height: 10px;
             background: var(--bar-track);
             border-radius: 5px;
             overflow: hidden;
             margin-left: 44px;
+            margin-right: 6px;
         }
         .progress-fill {
             height: 100%;
@@ -224,11 +360,20 @@
         /* ─── Inline Edit ───────────────────────── */
         .inline-edit {
             display: none;
-            align-items: center;
+            align-items: stretch;
             gap: 6px;
             width: 100%;
         }
         .inline-edit.active { display: flex; }
+        .inline-edit.stacked.active {
+            display: flex;
+            flex-direction: column;
+        }
+        .inline-edit.stacked .edit-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 2px;
+        }
         .inline-edit input, .inline-edit select {
             flex: 1;
             background: rgba(255,255,255,0.15);
@@ -281,6 +426,15 @@
 
         /* Hidden file input */
         #photo-upload { display: none; }
+
+        /* Loyalty dropdown styling */
+        .inline-edit select {
+            appearance: none;
+            -webkit-appearance: none;
+            background: rgba(255,255,255,0.15) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='white' stroke-width='1.5' fill='none'/%3E%3C/svg%3E") no-repeat right 10px center;
+            background-size: 10px;
+            padding-right: 28px;
+        }
     </style>
 </head>
 <body>
@@ -296,8 +450,25 @@
         <p id="error-message">Could not retrieve contact data.</p>
     </div>
 
+    <!-- Color Picker Panel -->
+    <div id="color-picker-panel" class="color-picker-panel">
+        <h4>Card Theme</h4>
+        <div class="color-swatches" id="color-swatches"></div>
+        <div class="custom-color-row">
+            <label>Custom:</label>
+            <input type="color" id="custom-color-1" value="#1a6da5" />
+            <input type="color" id="custom-color-2" value="#2980b9" />
+            <button class="apply-custom-color" onclick="applyCustomColors()">Apply</button>
+        </div>
+    </div>
+
     <!-- Profile Card -->
     <div id="profile-card" class="profile-card hidden">
+
+        <!-- Color edit button -->
+        <button class="color-edit-btn" id="color-edit-btn" title="Change card colors">
+            <img src="https://github.com/microsoft/fluentui-system-icons/raw/main/assets/Edit/SVG/ic_fluent_edit_48_regular.svg" alt="Edit" />
+        </button>
 
         <!-- Header -->
         <div class="header">
@@ -369,13 +540,16 @@
                 <div class="info-content">
                     <div class="info-label">Address</div>
                     <div class="info-value" id="val-address"></div>
-                    <div class="inline-edit" id="edit-address">
-                        <input type="text" id="input-address-line1" placeholder="Street" style="margin-bottom:4px" />
-                        <input type="text" id="input-address-city" placeholder="City" style="margin-bottom:4px" />
-                        <input type="text" id="input-address-state" placeholder="State" style="margin-bottom:4px" />
-                        <input type="text" id="input-address-zip" placeholder="ZIP Code" />
-                        <button class="edit-btn save" onclick="saveAddress()">&#10003;</button>
-                        <button class="edit-btn cancel" onclick="cancelEdit('val-address','edit-address')">&#10007;</button>
+                    <div class="inline-edit stacked" id="edit-address">
+                        <input type="text" id="input-address-line1" placeholder="Street" />
+                        <input type="text" id="input-address-city" placeholder="City" />
+                        <input type="text" id="input-address-state" placeholder="State / Province" />
+                        <input type="text" id="input-address-zip" placeholder="ZIP / Postal Code" />
+                        <input type="text" id="input-address-country" placeholder="Country / Region" />
+                        <div class="edit-actions">
+                            <button class="edit-btn save" onclick="saveAddress()">&#10003;</button>
+                            <button class="edit-btn cancel" onclick="cancelEdit('val-address','edit-address')">&#10007;</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -384,15 +558,20 @@
         <!-- Loyalty & Segment Section -->
         <div class="info-section">
             <div class="info-row" data-field="cr4e0_loyaltytier" data-type="string">
-                <div class="info-icon">
+                <div class="info-icon" id="loyalty-icon">
                     <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                 </div>
                 <div class="info-content">
                     <div class="info-label">Loyalty Tier</div>
                     <div class="info-value" id="val-loyalty"></div>
                     <div class="inline-edit" id="edit-loyalty">
-                        <input type="text" id="input-loyalty" placeholder="e.g., Gold, Silver, Bronze" />
-                        <button class="edit-btn save" onclick="saveField('cr4e0_loyaltytier','input-loyalty','val-loyalty','edit-loyalty','string')">&#10003;</button>
+                        <select id="input-loyalty">
+                            <option value="">— Select Tier —</option>
+                            <option value="Diamond">💎 Diamond</option>
+                            <option value="Gold">🥇 Gold</option>
+                            <option value="Silver">🥈 Silver</option>
+                        </select>
+                        <button class="edit-btn save" onclick="saveLoyaltyTier()">&#10003;</button>
                         <button class="edit-btn cancel" onclick="cancelEdit('val-loyalty','edit-loyalty')">&#10007;</button>
                     </div>
                 </div>
@@ -573,7 +752,7 @@
             const select = [
                 "fullname", "firstname", "lastname",
                 "emailaddress1", "telephone1",
-                "address1_line1", "address1_city", "address1_stateorprovince", "address1_postalcode", "address1_composite",
+                "address1_line1", "address1_city", "address1_stateorprovince", "address1_postalcode", "address1_country", "address1_composite",
                 "cr4e0_customerid", "cr4e0_loyaltytier", "cr4e0_segment",
                 "cr4e0_lifetimevalue", "cr4e0_propensitytopurchase", "cr4e0_engagementscore",
                 "entityimage_url",
@@ -634,7 +813,7 @@
             setFieldValue("val-address", addr, "No address");
 
             // Loyalty & Segment
-            setFieldValue("val-loyalty", data.cr4e0_loyaltytier, "Not set");
+            renderLoyaltyTier(data.cr4e0_loyaltytier);
             setFieldValue("val-segment", data.cr4e0_segment, "Not set");
 
             // Lifetime Value
@@ -681,16 +860,40 @@
             return name.split(" ").map(w => w.charAt(0).toUpperCase()).slice(0, 2).join("");
         }
 
+        function renderLoyaltyTier(tier) {
+            const el = document.getElementById("val-loyalty");
+            const iconEl = document.getElementById("loyalty-icon");
+            if (!tier) {
+                el.textContent = "Not set";
+                el.classList.add("empty");
+                el.className = "info-value empty";
+                iconEl.style.background = "";
+                iconEl.style.borderColor = "";
+                return;
+            }
+            el.classList.remove("empty");
+            const t = tier.toLowerCase();
+            let emoji = "";
+            let cls = "";
+            if (t === "diamond") { emoji = "💎"; cls = "diamond"; iconEl.style.background = "rgba(185,242,255,0.15)"; iconEl.style.borderColor = "rgba(185,242,255,0.4)"; }
+            else if (t === "gold") { emoji = "🥇"; cls = "gold"; iconEl.style.background = "rgba(255,215,0,0.15)"; iconEl.style.borderColor = "rgba(255,215,0,0.4)"; }
+            else if (t === "silver") { emoji = "🥈"; cls = "silver"; iconEl.style.background = "rgba(224,224,224,0.15)"; iconEl.style.borderColor = "rgba(224,224,224,0.4)"; }
+            else { el.textContent = tier; return; }
+            el.innerHTML = '<span class="loyalty-badge ' + cls + '"><span class="tier-icon">' + emoji + '</span><span class="tier-text">' + tier + '</span></span>';
+        }
+
         function formatAddress(data) {
             const line1 = data.address1_line1 || "";
             const city = data.address1_city || "";
             const state = data.address1_stateorprovince || "";
             const zip = data.address1_postalcode || "";
+            const country = data.address1_country || "";
             const parts = [];
             if (line1) parts.push(line1);
-            const cityStateZip = [city, state].filter(Boolean).join(", ");
-            if (cityStateZip) parts.push(cityStateZip);
+            const cityState = [city, state].filter(Boolean).join(", ");
+            if (cityState) parts.push(cityState);
             if (zip) parts.push(zip);
+            if (country) parts.push(country);
             return parts.join("\n") || "";
         }
 
@@ -753,6 +956,7 @@
             const city = document.getElementById("input-address-city").value.trim();
             const state = document.getElementById("input-address-state").value.trim();
             const zip = document.getElementById("input-address-zip").value.trim();
+            const country = document.getElementById("input-address-country").value.trim();
 
             try {
                 await updateContact({
@@ -760,11 +964,30 @@
                     address1_city: city || null,
                     address1_stateorprovince: state || null,
                     address1_postalcode: zip || null,
+                    address1_country: country || null,
                 });
                 const fresh = await fetchContact();
                 renderProfile(fresh);
                 cancelEdit("val-address", "edit-address");
                 showToast("Address updated!");
+                try {
+                    const xrm = getXrmContext();
+                    if (xrm && xrm.Page && xrm.Page.data) xrm.Page.data.refresh(false);
+                } catch (e) { /* ignore */ }
+            } catch (err) {
+                showToast("Error: " + err.message);
+            }
+        }
+
+        async function saveLoyaltyTier() {
+            const select = document.getElementById("input-loyalty");
+            const newValue = select.value || null;
+            try {
+                await updateContact({ cr4e0_loyaltytier: newValue });
+                const fresh = await fetchContact();
+                renderProfile(fresh);
+                cancelEdit("val-loyalty", "edit-loyalty");
+                showToast("Loyalty tier updated!");
                 try {
                     const xrm = getXrmContext();
                     if (xrm && xrm.Page && xrm.Page.data) xrm.Page.data.refresh(false);
@@ -854,6 +1077,7 @@
                         document.getElementById("input-address-city").value = contactData?.address1_city || "";
                         document.getElementById("input-address-state").value = contactData?.address1_stateorprovince || "";
                         document.getElementById("input-address-zip").value = contactData?.address1_postalcode || "";
+                        document.getElementById("input-address-country").value = contactData?.address1_country || "";
                         startEdit("val-address", "edit-address");
                     } else if (field === "cr4e0_customerid") {
                         startEdit("val-customerid", "edit-customerid", contactData?.cr4e0_customerid);
@@ -862,7 +1086,10 @@
                     } else if (field === "telephone1") {
                         startEdit("val-phone", "edit-phone", contactData?.telephone1);
                     } else if (field === "cr4e0_loyaltytier") {
-                        startEdit("val-loyalty", "edit-loyalty", contactData?.cr4e0_loyaltytier);
+                        // Pre-select the current tier in the dropdown
+                        const sel = document.getElementById("input-loyalty");
+                        sel.value = contactData?.cr4e0_loyaltytier || "";
+                        startEdit("val-loyalty", "edit-loyalty");
                     } else if (field === "cr4e0_segment") {
                         startEdit("val-segment", "edit-segment", contactData?.cr4e0_segment);
                     }
@@ -896,6 +1123,74 @@
             });
         }
 
+        // ─── Color Picker ────────────────────────────────────────
+        const COLOR_PRESETS = [
+            // Solid-feel gradients
+            { name: "Ocean Blue", gradient: "linear-gradient(160deg, #1a6da5 0%, #2980b9 30%, #1f7bb5 60%, #1a6da5 100%)" },
+            { name: "Royal Purple", gradient: "linear-gradient(160deg, #5b2c8e 0%, #7b4db5 30%, #6a3fa0 60%, #5b2c8e 100%)" },
+            { name: "Forest Green", gradient: "linear-gradient(160deg, #1a7a4a 0%, #27ae60 30%, #1e8c52 60%, #1a7a4a 100%)" },
+            { name: "Charcoal", gradient: "linear-gradient(160deg, #2c3e50 0%, #34495e 30%, #2c3e50 60%, #232d38 100%)" },
+            // Faded / mixed modern
+            { name: "Sunset Fade", gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #f093fb 100%)" },
+            { name: "Aurora", gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)" },
+            { name: "Emerald Mist", gradient: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)" },
+            { name: "Warm Dusk", gradient: "linear-gradient(135deg, #c94b4b 0%, #4b134f 100%)" },
+            { name: "Peach Dream", gradient: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)" },
+            { name: "Cool Slate", gradient: "linear-gradient(135deg, #536976 0%, #292e49 100%)" },
+            { name: "Berry", gradient: "linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)" },
+            { name: "Nordic", gradient: "linear-gradient(135deg, #43cea2 0%, #185a9d 100%)" },
+        ];
+
+        function setupColorPicker() {
+            const btn = document.getElementById("color-edit-btn");
+            const panel = document.getElementById("color-picker-panel");
+            const swatches = document.getElementById("color-swatches");
+
+            // Build swatches
+            COLOR_PRESETS.forEach((preset, i) => {
+                const swatch = document.createElement("div");
+                swatch.className = "color-swatch";
+                swatch.style.background = preset.gradient;
+                swatch.title = preset.name;
+                swatch.addEventListener("click", () => {
+                    applyCardGradient(preset.gradient);
+                    document.querySelectorAll(".color-swatch").forEach(s => s.classList.remove("active"));
+                    swatch.classList.add("active");
+                });
+                swatches.appendChild(swatch);
+            });
+
+            // Toggle panel
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                panel.classList.toggle("open");
+            });
+
+            // Close when clicking outside
+            document.addEventListener("click", (e) => {
+                if (!panel.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+                    panel.classList.remove("open");
+                }
+            });
+
+            // Restore saved color
+            const saved = localStorage.getItem("contact360_cardGradient");
+            if (saved) applyCardGradient(saved);
+        }
+
+        function applyCardGradient(gradient) {
+            document.getElementById("profile-card").style.background = gradient;
+            localStorage.setItem("contact360_cardGradient", gradient);
+        }
+
+        function applyCustomColors() {
+            const c1 = document.getElementById("custom-color-1").value;
+            const c2 = document.getElementById("custom-color-2").value;
+            const gradient = "linear-gradient(160deg, " + c1 + " 0%, " + c2 + " 100%)";
+            applyCardGradient(gradient);
+            document.querySelectorAll(".color-swatch").forEach(s => s.classList.remove("active"));
+        }
+
         // ─── Toast ──────────────────────────────────────────────
         function showToast(message) {
             const toast = document.getElementById("toast");
@@ -923,6 +1218,7 @@
                 renderProfile(data);
                 wireClickToEdit();
                 setupPhotoUpload();
+                setupColorPicker();
             } catch (err) {
                 document.getElementById("loading-screen").classList.add("hidden");
                 document.getElementById("error-screen").classList.remove("hidden");
