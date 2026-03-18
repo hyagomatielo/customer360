@@ -388,6 +388,20 @@
             max-height: 320px;
             overflow-y: auto;
         }
+
+        /* ─── Wide chart container ──────────────────────── */
+        .chart-container-wide {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            overflow-x: auto;
+        }
+        .chart-container-wide svg { overflow: visible; }
+
+        /* Timeline dot hover */
+        .timeline-dot { cursor: pointer; }
+        .bubble-circle { cursor: pointer; }
     </style>
 </head>
 <body>
@@ -468,6 +482,29 @@
                 </div>
                 <div class="card-body">
                     <div class="chart-container" id="chart-cases"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Charts Row -->
+        <div class="chart-row">
+            <!-- Case History Timeline -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>&#x1F552; Case History Timeline</h2>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container-wide" id="chart-case-timeline"></div>
+                </div>
+            </div>
+
+            <!-- Opportunity Bubble Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>&#x1F4A0; Opportunity Bubble Chart</h2>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container-wide" id="chart-opp-bubbles"></div>
                 </div>
             </div>
         </div>
@@ -931,7 +968,283 @@
                 g.append("text").attr("x", 18).attr("y", 10).attr("font-size", "12px").attr("fill", "var(--text-secondary)").text(d.label + " (" + d.count + ")");
             });
         }
+        // ─── D3: Case History Timeline ──────────────────────
+        function drawCaseTimeline(cases) {
+            const container = document.getElementById("chart-case-timeline");
+            container.innerHTML = "";
 
+            if (cases.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F552;</div><p>No case history to display.</p></div>';
+                return;
+            }
+
+            // Parse dates and sort
+            const data = cases
+                .filter(c => c.createdon)
+                .map(c => ({
+                    date: new Date(c.createdon),
+                    title: c.title || "Untitled",
+                    ticket: c.ticketnumber || "",
+                    priority: c.prioritycode,
+                    priorityLabel: priorityMap[c.prioritycode] || "Normal",
+                    status: getFormattedAnnotation(c, "statuscode") || caseStatusMap[c.statuscode] || "Unknown",
+                    isOpen: c.statecode === 0,
+                }))
+                .sort((a, b) => a.date - b.date);
+
+            const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+            const width = Math.max((container.clientWidth || 500) - margin.left - margin.right, 300);
+            const height = 260 - margin.top - margin.bottom;
+
+            const svg = d3.select(container).append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            // Scales
+            const x = d3.scaleTime()
+                .domain(d3.extent(data, d => d.date))
+                .range([0, width])
+                .nice();
+
+            // Y axis: group by priority (1=High at top, 3=Low at bottom)
+            const y = d3.scalePoint()
+                .domain(["High", "Normal", "Low"])
+                .range([0, height])
+                .padding(0.5);
+
+            const priorityColor = { 1: "#d13438", 2: "#ca5010", 3: "#107c10" };
+            const tooltip = d3.select("#tooltip");
+
+            // Grid lines
+            svg.append("g")
+                .attr("class", "grid")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x).tickSize(-height).tickFormat(""))
+                .selectAll("line").attr("stroke", "var(--border-light)");
+            svg.selectAll(".grid .domain").remove();
+
+            // X axis
+            svg.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x).ticks(6).tickFormat(d3.timeFormat("%b %Y")))
+                .selectAll("text")
+                .attr("font-size", "11px")
+                .attr("fill", "var(--text-tertiary)");
+            svg.selectAll(".domain").attr("stroke", "var(--border)");
+
+            // Y axis
+            svg.append("g")
+                .call(d3.axisLeft(y).tickSize(0).tickPadding(10))
+                .selectAll("text")
+                .attr("font-size", "11px")
+                .attr("fill", "var(--text-secondary)");
+            svg.selectAll(".domain").remove();
+
+            // Horizontal guide lines for each priority
+            ["High", "Normal", "Low"].forEach(p => {
+                svg.append("line")
+                    .attr("x1", 0).attr("x2", width)
+                    .attr("y1", y(p)).attr("y2", y(p))
+                    .attr("stroke", "var(--border-light)")
+                    .attr("stroke-dasharray", "4,4");
+            });
+
+            // Dots
+            svg.selectAll(".timeline-dot")
+                .data(data)
+                .join("circle")
+                .attr("class", "timeline-dot")
+                .attr("cx", d => x(d.date))
+                .attr("cy", d => y(d.priorityLabel))
+                .attr("r", 0)
+                .attr("fill", d => priorityColor[d.priority] || "#888")
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 2)
+                .attr("opacity", d => d.isOpen ? 1 : 0.5)
+                .on("mouseover", function (event, d) {
+                    d3.select(this).transition().duration(150).attr("r", 10);
+                    tooltip.style("opacity", 1)
+                        .html("<strong>" + esc(d.ticket) + "</strong><br/>" +
+                              esc(d.title) + "<br/>" +
+                              '<span style="color:' + (priorityColor[d.priority] || '#888') + '">' + d.priorityLabel + '</span> · ' + d.status + "<br/>" +
+                              fmtDate(d.date.toISOString()));
+                })
+                .on("mousemove", function (event) {
+                    tooltip.style("left", (event.pageX + 14) + "px").style("top", (event.pageY - 32) + "px");
+                })
+                .on("mouseout", function () {
+                    d3.select(this).transition().duration(150).attr("r", 7);
+                    tooltip.style("opacity", 0);
+                })
+                .transition()
+                .duration(600)
+                .delay((d, i) => i * 40)
+                .attr("r", 7);
+
+            // Legend
+            const legendData = [{label: "High", color: "#d13438"}, {label: "Normal", color: "#ca5010"}, {label: "Low", color: "#107c10"}];
+            const legend = svg.append("g").attr("transform", "translate(" + (width - 180) + ",-8)");
+            legendData.forEach((d, i) => {
+                const g = legend.append("g").attr("transform", "translate(" + (i * 65) + ",0)");
+                g.append("circle").attr("r", 5).attr("fill", d.color).attr("cy", 0);
+                g.append("text").attr("x", 10).attr("y", 4).attr("font-size", "11px").attr("fill", "var(--text-secondary)").text(d.label);
+            });
+        }
+
+        // ─── D3: Opportunity Bubble Chart ──────────────────────
+        function drawOpportunityBubbles(opps) {
+            const container = document.getElementById("chart-opp-bubbles");
+            container.innerHTML = "";
+
+            if (opps.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F4A0;</div><p>No opportunity data to display.</p></div>';
+                return;
+            }
+
+            const data = opps
+                .filter(o => o.estimatedclosedate)
+                .map(o => {
+                    const stateLabel = getFormattedAnnotation(o, "statecode") || "Open";
+                    return {
+                        name: o.name || "Untitled",
+                        closeDate: new Date(o.estimatedclosedate),
+                        revenue: o.estimatedvalue || 0,
+                        actual: o.actualvalue || 0,
+                        probability: o.closeprobability,
+                        stage: o.stepname || "-",
+                        state: stateLabel,
+                    };
+                });
+
+            const margin = { top: 20, right: 30, bottom: 45, left: 70 };
+            const width = Math.max((container.clientWidth || 500) - margin.left - margin.right, 300);
+            const height = 280 - margin.top - margin.bottom;
+
+            const svg = d3.select(container).append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            // Scales
+            const x = d3.scaleTime()
+                .domain(d3.extent(data, d => d.closeDate))
+                .range([0, width])
+                .nice();
+
+            const maxRev = d3.max(data, d => d.revenue) || 1;
+            const y = d3.scaleLinear()
+                .domain([0, maxRev * 1.15])
+                .range([height, 0])
+                .nice();
+
+            const r = d3.scaleSqrt()
+                .domain([0, maxRev])
+                .range([6, 40]);
+
+            const stateColor = {
+                "Open": "#0078d4",
+                "Won": "#107c10",
+                "Lost": "#d13438",
+            };
+
+            const tooltip = d3.select("#tooltip");
+
+            // Grid
+            svg.append("g")
+                .call(d3.axisLeft(y).tickSize(-width).tickFormat(""))
+                .selectAll("line").attr("stroke", "var(--border-light)");
+            svg.selectAll(".domain").remove();
+
+            // Axes
+            svg.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x).ticks(6).tickFormat(d3.timeFormat("%b %Y")))
+                .selectAll("text")
+                .attr("font-size", "11px")
+                .attr("fill", "var(--text-tertiary)")
+                .attr("transform", "rotate(-25)")
+                .style("text-anchor", "end");
+
+            svg.append("g")
+                .call(d3.axisLeft(y).ticks(5).tickFormat(d => fmtCurrencyShort(d)))
+                .selectAll("text")
+                .attr("font-size", "11px")
+                .attr("fill", "var(--text-tertiary)");
+
+            // Axis labels
+            svg.append("text")
+                .attr("x", width / 2).attr("y", height + 40)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "11px")
+                .attr("fill", "var(--text-tertiary)")
+                .text("Estimated Close Date");
+
+            svg.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("x", -height / 2).attr("y", -55)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "11px")
+                .attr("fill", "var(--text-tertiary)")
+                .text("Estimated Revenue");
+
+            // Bubbles — sort descending by revenue so smaller on top
+            const sorted = [...data].sort((a, b) => b.revenue - a.revenue);
+
+            svg.selectAll(".bubble-circle")
+                .data(sorted)
+                .join("circle")
+                .attr("class", "bubble-circle")
+                .attr("cx", d => x(d.closeDate))
+                .attr("cy", d => y(d.revenue))
+                .attr("r", 0)
+                .attr("fill", d => stateColor[d.state] || "#8764b8")
+                .attr("opacity", 0.7)
+                .attr("stroke", d => stateColor[d.state] || "#8764b8")
+                .attr("stroke-width", 1.5)
+                .on("mouseover", function (event, d) {
+                    d3.select(this).transition().duration(150)
+                        .attr("opacity", 1)
+                        .attr("stroke-width", 3);
+                    tooltip.style("opacity", 1)
+                        .html("<strong>" + esc(d.name) + "</strong><br/>" +
+                              "Revenue: " + fmtCurrency(d.revenue) + "<br/>" +
+                              (d.actual ? "Actual: " + fmtCurrency(d.actual) + "<br/>" : "") +
+                              "Close: " + fmtDate(d.closeDate.toISOString()) + "<br/>" +
+                              "Stage: " + esc(d.stage) + "<br/>" +
+                              (d.probability != null ? "Probability: " + d.probability + "%<br/>" : "") +
+                              '<span style="color:' + (stateColor[d.state] || '#8764b8') + ';font-weight:700">' + d.state + '</span>');
+                })
+                .on("mousemove", function (event) {
+                    tooltip.style("left", (event.pageX + 14) + "px").style("top", (event.pageY - 32) + "px");
+                })
+                .on("mouseout", function () {
+                    d3.select(this).transition().duration(150)
+                        .attr("opacity", 0.7)
+                        .attr("stroke-width", 1.5);
+                    tooltip.style("opacity", 0);
+                })
+                .transition()
+                .duration(700)
+                .delay((d, i) => i * 50)
+                .ease(d3.easeBackOut)
+                .attr("r", d => r(d.revenue));
+
+            // Legend
+            const legendItems = [{label: "Open", color: "#0078d4"}, {label: "Won", color: "#107c10"}, {label: "Lost", color: "#d13438"}];
+            const legend = svg.append("g").attr("transform", "translate(" + (width - 200) + ",-8)");
+            legendItems.forEach((d, i) => {
+                const g = legend.append("g").attr("transform", "translate(" + (i * 70) + ",0)");
+                g.append("circle").attr("r", 5).attr("fill", d.color).attr("opacity", 0.7);
+                g.append("text").attr("x", 10).attr("y", 4).attr("font-size", "11px").attr("fill", "var(--text-secondary)").text(d.label);
+            });
+
+            // Size legend
+            const sizeLegend = svg.append("g").attr("transform", "translate(" + (width - 60) + "," + (height - 60) + ")");
+            sizeLegend.append("text").attr("text-anchor", "middle").attr("y", -30).attr("font-size", "10px").attr("fill", "var(--text-tertiary)").text("Bubble = Revenue");
+        }
         // ─── Main Init ────────────────────────────────────────
         async function init() {
             const accountId = getAccountId();
@@ -964,6 +1277,8 @@
                 renderContacts(contacts);
                 drawPipelineChart(opps);
                 drawCasesDonut(cases);
+                drawCaseTimeline(cases);
+                drawOpportunityBubbles(opps);
 
                 // Show dashboard
                 document.getElementById("loading-screen").classList.add("hidden");
