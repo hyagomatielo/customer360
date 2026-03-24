@@ -1,3 +1,15 @@
 node_modules/
 package-lock.json
 .msal-cache.json
+deploy.js
+deploy-log.txt
+deploy-result.txt
+package.json
+test-connection.js
+api.js
+app.js
+auth.js
+config.js
+create-contact-fields.js
+inspect-schema.js
+schema-output.json
