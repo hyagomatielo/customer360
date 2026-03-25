@@ -1,33 +1,47 @@
-# Customer 360 — Dynamics 365
+# Customer 360 for Dynamics 365
 
-A single-page app that authenticates via MSAL and displays a Customer 360 view for any account in your Dynamics 365 Sales environment, showing **open cases**, **open opportunities**, and **contacts** — all from live Dataverse data.
+A standalone single-page application that authenticates via MSAL and provides two 360-degree views for Dynamics 365 Sales data.
 
----
+## Pages
 
-## Prerequisites
+### Account Dashboard (`customer360.html`)
+A full dashboard view for any Account record, featuring:
+- **Account header** — name, phone, website, address, employees, annual revenue, status badge
+- **KPI strip** — Open Cases, Opportunities, Pipeline Value, Contacts
+- **Interactive D3.js charts** — Opportunity Pipeline (bar chart by stage), Cases by Priority (donut chart)
+- **Data tables** — Opportunities, Cases, and Contacts with color-coded status badges
+- Responsive layout adapting to different screen sizes
+
+### Contact Profile (`contact360.html`)
+A rich profile card for any Contact record, featuring:
+- **Contact photo** with initials fallback and image upload
+- **Loyalty tier** with animated shimmer effect (Diamond / Gold / Silver)
+- **Contact details** — Customer ID, email, phone, address
+- **Scores** — Lifetime Value, Propensity to Purchase, Engagement Score with progress bars
+- **Relationship Health** — powered by Sales Insights (health status, trend, interactions)
+- **Color customization** and inline editing
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `customer360.html` | Account dashboard page |
+| `contact360.html` | Contact profile card page |
+| `index.html` | Entry point / landing page |
+| `styles.css` | Shared styles |
+
+## Requirements
 
 | Requirement | Details |
 |---|---|
 | **Azure AD App Registration** | Register at [portal.azure.com](https://portal.azure.com) → Azure Active Directory → App registrations |
 | **Redirect URI** | Add `http://localhost:3000` as a **Single-page application (SPA)** redirect URI |
 | **API Permission** | Add **Dynamics CRM → `user_impersonation`** (Delegated) and grant admin consent |
-| **Dynamics 365 environment** | `https://hyagom.crm.dynamics.com` (already configured) |
+| **Dynamics 365 Sales** | Online environment with Sales Insights enabled for relationship health data |
 
-## Setup
+## License
 
-1. **Register the Azure AD App** (if not already done):
-   - Go to Azure Portal → App registrations → New registration.
-   - Name: `Customer360` (or anything you like).
-   - Supported account types: *Accounts in this organizational directory only*.
-   - Redirect URI: select **SPA** and enter `http://localhost:3000`.
-
-2. **Add API Permission**:
-   - In your app registration → API permissions → Add a permission → Dynamics CRM → Delegated → `user_impersonation` → Add.
-   - Click **Grant admin consent**.
-
-3. **Update `config.js`**:
-   - Set `clientId` to your Application (client) ID.
-   - Set `tenantId` to your Directory (tenant) ID.
+[MIT](LICENSE.txt)
 
 4. **Serve the app** (any static server on port 3000):
    ```bash
