@@ -593,8 +593,9 @@
                     return GetGlobalContext().getClientUrl();
                 }
             } catch (e) {}
-            // Fallback for testing
-            return "https://hyagom.crm.dynamics.com";
+            // No tenant fallback — must run as a web resource inside Dynamics 365.
+            console.warn("[customer360] Unable to detect Dynamics 365 client URL.");
+            return "";
         })();
 
         const API = CRM_URL + "/api/data/v9.2";

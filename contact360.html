@@ -984,8 +984,9 @@
                 return origin;
             }
 
-            // Hardcoded fallback
-            return "https://hyagom.crm.dynamics.com";
+            // No tenant fallback — must run as a web resource inside Dynamics 365.
+            console.warn("[contact360] Unable to detect Dynamics 365 client URL.");
+            return "";
         }
 
         // ─── API Helpers ────────────────────────────────────────
